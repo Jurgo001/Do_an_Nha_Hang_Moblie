@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // Import thư viện gọi API
+import 'dart:convert';                   // Import thư viện xử lý JSON
 
 // Tương đương với class CartItem trong C#
 class CartItem {
@@ -70,5 +72,44 @@ class CartProvider with ChangeNotifier {
   void xoaTatCa() {
     _list.clear();
     notifyListeners();
+  }
+
+  // =========================================================================
+  // PHẦN THÊM MỚI: HÀM GỌI API ĐỂ ĐẨY DỮ LIỆU THANH TOÁN LÊN SERVER C#
+  // =========================================================================
+  Future<bool> datHangTrenMobile(String voucherCode, int paymentMethod) async {
+    // Nếu giỏ hàng trống thì báo lỗi luôn, không gọi API
+    if (_list.isEmpty) return false; 
+
+    // Đóng gói dữ liệu giỏ hàng hiện tại thành format JSON
+    var data = {
+      // Map từng món hàng thành dạng { id: "1", qty: 2 }
+      "cart": _list.map((e) => {"id": e.maSP, "qty": e.soLuong}).toList(),
+      "voucher": voucherCode,
+      "paymentMethod": paymentMethod
+    };
+
+    try {
+      // Gọi lên Server C# của bạn
+      // LƯU Ý 1: Nếu chạy máy ảo Android, đổi 'localhost' thành '10.0.2.2'
+      // LƯU Ý 2: Nếu chạy điện thoại thật, dùng IP máy tính (VD: 192.168.1.15)
+      var response = await http.post(
+        Uri.parse('http://192.168.1.xxx:PORT/api/Cart/DatHang'), // <-- NHỚ SỬA LẠI ĐƯỜNG DẪN NÀY
+        body: json.encode(data),
+        headers: {"Content-Type": "application/json"},
+      );
+
+      // Nếu Server C# trả về thành công (Mã 200)
+      if (response.statusCode == 200) {
+        xoaTatCa(); // THÀNH CÔNG -> Xóa sạch giỏ hàng trên app
+        return true; 
+      } else {
+        print("Lỗi Server: ${response.statusCode}");
+        return false;
+      }
+    } catch (e) {
+      print("Lỗi kết nối khi gọi API Đặt hàng: $e");
+      return false; // Thất bại do mất mạng hoặc sai IP
+    }
   }
 }
