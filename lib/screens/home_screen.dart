@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/mon_an.dart';
 import '../models/cart_provider.dart';
 import 'detail_screen.dart';
+import 'cart_screen.dart';
 
 const Color primaryColor = Colors.red;
 const Color warningColor = Colors.orange;
@@ -43,6 +44,46 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        actions: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_cart, color: primaryColor),
+                onPressed: () {
+                  // Mở màn hình giỏ hàng mà tui với bạn làm lúc nãy
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => CartScreen()),
+                  );
+                },
+              ),
+              // Hiển thị số lượng nhỏ trên icon giỏ hàng cho xịn
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Consumer<CartProvider>(
+                  builder: (context, cart, child) => cart.tongSL > 0
+                      ? Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.yellow,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            '${cart.tongSL}',
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : const SizedBox(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 10),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 16),
