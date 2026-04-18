@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import '../models/mon_an.dart';
 import '../models/cart_provider.dart';
 
-// Lưu ý: Đảm bảo các màu sắc này đã được định nghĩa
 const Color primaryColor = Colors.red;
 const Color warningColor = Colors.orange;
 const Color darkTextColor = Color(0xFF333333);
@@ -23,6 +22,9 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen> {
   // --- BIẾN TRẠNG THÁI ---
   late Future<dynamic> _detailsFuture;
+  late Future<List<MonAn>>
+  _featuredFuture; // THÊM BIẾN NÀY ĐỂ TRÁNH LỖI LOAD LẠI
+
   late String mainImageUrl;
   bool isFavorite = false;
   int _currentRating = 5;
@@ -34,11 +36,12 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     mainImageUrl = widget.monAn.anhDaiDien;
+    // CHỈ GỌI API ĐÚNG 1 LẦN KHI MỞ TRANG
     _detailsFuture = fetchChiTietMonTuAPI(widget.monAn.id);
+    _featuredFuture = fetchMonAn(); // Hàm này nằm trong mon_an.dart của bạn
   }
 
   // --- HÀM XỬ LÝ LOGIC (API) ---
-
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) setState(() => _selectedImage = File(image.path));
@@ -53,12 +56,12 @@ class _DetailScreenState extends State<DetailScreen> {
     }
 
     try {
-      final url = Uri.parse('https://localhost:57566/MobileApi/GuiBinhLuan');
+      final url = Uri.parse('https://localhost:44324/MobileApi/GuiBinhLuan');
       final response = await http.post(
         url,
         body: {
           'maMon': widget.monAn.id,
-          'tenKH': 'Khách hàng', // Sau này lấy tên từ tài khoản đăng nhập
+          'tenKH': 'Khách hàng',
           'noiDung': _commentController.text,
           'soSao': _currentRating.toString(),
           'hinhAnhBase64': base64Image,
@@ -67,14 +70,13 @@ class _DetailScreenState extends State<DetailScreen> {
 
       if (!mounted) return;
       if (response.statusCode == 200) {
-        // Xóa trắng form nhập
         _commentController.clear();
-
         setState(() {
           _selectedImage = null;
           _currentRating = 5;
-          // QUAN TRỌNG: Yêu cầu load lại toàn bộ chi tiết và cmt mới từ API
-          _detailsFuture = fetchChiTietMonTuAPI(widget.monAn.id);
+          _detailsFuture = fetchChiTietMonTuAPI(
+            widget.monAn.id,
+          ); // Reload dữ liệu
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -88,13 +90,13 @@ class _DetailScreenState extends State<DetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Lỗi: $e")));
+      ).showSnackBar(SnackBar(content: Text("Lỗi gửi cmt: $e")));
     }
   }
 
   Future<dynamic> fetchChiTietMonTuAPI(String id) async {
     final url = Uri.parse(
-      'https://localhost:58554/MobileApi/GetChiTietMon?id=$id',
+      'https://localhost:44324/MobileApi/GetChiTietMon?id=$id',
     );
     try {
       final response = await http.get(url);
@@ -102,11 +104,10 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e) {
       print("Lỗi API Chi tiết: $e");
     }
-    return null;
+    return null; // Trả về null nếu lỗi để App không văng
   }
 
   // --- GIAO DIỆN CHÍNH ---
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,16 +121,13 @@ class _DetailScreenState extends State<DetailScreen> {
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // CHỐNG LỖI TRÀN KHUNG
           children: [
-            // 1. Gallery ảnh
             _buildGallerySection(),
-
-            // 2. Thông tin cơ bản (Tên, Giá, Mô tả)
             _buildBasicInfoSection(),
-
             const Divider(thickness: 1, height: 30),
 
-            // 3. Hiển thị đánh giá trung bình và danh sách bình luận từ DB
+            // Phần API Cmt
             FutureBuilder<dynamic>(
               future: _detailsFuture,
               builder: (context, snapshot) {
@@ -142,56 +140,28 @@ class _DetailScreenState extends State<DetailScreen> {
                   );
                 }
                 if (snapshot.hasData && snapshot.data != null) {
-                  // Trong FutureBuilder, phần snapshot.hasData:
                   var data = snapshot.data;
-                  List<dynamic> listCmt =
-                      data['BinhLuans'] ?? []; // Lấy đúng tên biến từ C#
-
+                  List<dynamic> listCmt = data['BinhLuans'] ?? [];
                   return Column(
                     children: [
                       _buildRatingSummary(
                         data['DiemTrungBinh'],
                         data['TongDanhGia'],
                       ),
-
-                      // Phần hiển thị danh sách bình luận
-                      if (listCmt.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text(
-                            "Món này chưa có ai bình luận hết Hào ơi!",
-                          ),
-                        )
-                      else
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: listCmt.length,
-                          itemBuilder: (context, index) {
-                            var cmt = listCmt[index];
-                            return ListTile(
-                              leading: const CircleAvatar(
-                                child: Icon(Icons.person),
-                              ),
-                              // Kiểm tra đúng tên cột trong SQL của bạn
-                              title: Text(cmt['TenNguoiGui'] ?? "Ẩn danh"),
-                              subtitle: Text(cmt['NoiDung'] ?? ""),
-                              trailing: Text(
-                                "${cmt['SoSao'] ?? 5} ⭐",
-                              ), // Tránh lỗi nếu SoSao bị NULL
-                            );
-                          },
-                        ),
+                      _buildCommentList(listCmt),
                     ],
                   );
                 }
-                return const SizedBox();
+                return const Center(
+                  child: Text(
+                    "Chưa tải được đánh giá",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                );
               },
             ),
 
             const Divider(thickness: 1, height: 30),
-
-            // 4. Form nhập bình luận mới
             _buildCommentInputSection(),
 
             const Padding(
@@ -201,11 +171,8 @@ class _DetailScreenState extends State<DetailScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
-
-            // 5. Danh sách món bán chạy
             _buildFeaturedList(),
-
-            const SizedBox(height: 30),
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -213,9 +180,18 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  // --- CÁC HÀM XÂY DỰNG GIAO DIỆN CON (NẰM TRONG CLASS STATE) ---
-
+  // --- CÁC HÀM GIAO DIỆN CON ---
   Widget _buildGallerySection() {
+    // Bắt lỗi nếu URL ảnh bị rỗng từ database
+    if (mainImageUrl.isEmpty || !mainImageUrl.startsWith('http')) {
+      return Container(
+        height: 280,
+        width: double.infinity,
+        color: Colors.grey.shade200,
+        child: const Icon(Icons.fastfood, size: 50, color: Colors.grey),
+      );
+    }
+
     return Image.network(
       mainImageUrl,
       height: 280,
@@ -223,8 +199,9 @@ class _DetailScreenState extends State<DetailScreen> {
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => Container(
         height: 280,
+        width: double.infinity,
         color: Colors.grey.shade200,
-        child: const Icon(Icons.broken_image, size: 50),
+        child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
       ),
     );
   }
@@ -263,7 +240,14 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Widget _buildRatingSummary(dynamic diem, dynamic tong) {
-    double score = (diem is num) ? diem.toDouble() : 5.0;
+    double score = 5.0;
+    if (diem is num) {
+      score = diem.toDouble();
+    } else if (diem is String) {
+      score = double.tryParse(diem) ?? 5.0;
+    }
+    int total = (tong is num) ? tong.toInt() : 0;
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -293,7 +277,7 @@ class _DetailScreenState extends State<DetailScreen> {
                 ),
               ),
               Text(
-                "($tong đánh giá thực tế)",
+                "($total đánh giá thực tế)",
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
@@ -304,13 +288,48 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Widget _buildCommentList(List<dynamic> comments) {
-    if (comments.isEmpty) return const SizedBox();
+    if (comments.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Text("Món này chưa có ai bình luận hết Hào ơi!"),
+      );
+    }
+
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: comments.length > 5 ? 5 : comments.length,
       itemBuilder: (context, index) {
         var cmt = comments[index];
+        Widget imageWidget = const SizedBox();
+
+        if (cmt['HinhAnhBinhLuan'] != null &&
+            cmt['HinhAnhBinhLuan'].toString().trim().isNotEmpty) {
+          try {
+            String base64Str = cmt['HinhAnhBinhLuan'].toString();
+            if (base64Str.contains(',')) base64Str = base64Str.split(',').last;
+            base64Str = base64Str.replaceAll(RegExp(r'\s+'), '');
+
+            imageWidget = Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.memory(
+                  base64Decode(base64Str),
+                  height: 100,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Text(
+                    "Lỗi tải ảnh",
+                    style: TextStyle(color: Colors.red, fontSize: 10),
+                  ),
+                ),
+              ),
+            );
+          } catch (e) {
+            print("Lỗi giải mã ảnh cmt: $e");
+          }
+        }
+
         return ListTile(
           leading: const CircleAvatar(
             backgroundColor: Colors.red,
@@ -322,22 +341,9 @@ class _DetailScreenState extends State<DetailScreen> {
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(cmt['NoiDung'] ?? ""),
-              if (cmt['HinhAnhBinhLuan'] != null &&
-                  cmt['HinhAnhBinhLuan'].toString().isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.memory(
-                      base64Decode(cmt['HinhAnhBinhLuan']),
-                      height: 100,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-            ],
+            mainAxisSize:
+                MainAxisSize.min, // CỰC KỲ QUAN TRỌNG ĐỂ KHÔNG TRẮNG MÀN HÌNH
+            children: [Text(cmt['NoiDung'] ?? ""), imageWidget],
           ),
           trailing: Text(
             "${cmt['SoSao'] ?? 5} ⭐",
@@ -397,7 +403,11 @@ class _DetailScreenState extends State<DetailScreen> {
               const Spacer(),
               ElevatedButton(
                 onPressed: _submitComment,
-                style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  // GHI ĐÈ KÍCH THƯỚC: Ép nút Gửi chỉ rộng 100, cao 45 thôi
+                  minimumSize: const Size(100, 45),
+                ),
                 child: const Text("Gửi", style: TextStyle(color: Colors.white)),
               ),
             ],
@@ -409,10 +419,17 @@ class _DetailScreenState extends State<DetailScreen> {
 
   Widget _buildFeaturedList() {
     return FutureBuilder<List<MonAn>>(
-      future: fetchMonAn(), // Đảm bảo hàm này nằm trong mon_an.dart
+      future: _featuredFuture, // DÙNG BIẾN TRONG INITSTATE THAY VÌ GỌI HÀM
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox();
+        if (!snapshot.hasData)
+          return const SizedBox(
+            height: 180,
+            child: Center(child: CircularProgressIndicator()),
+          );
+
         final list = snapshot.data!.take(5).toList();
+        if (list.isEmpty) return const SizedBox();
+
         return SizedBox(
           height: 180,
           child: ListView.builder(
@@ -439,6 +456,15 @@ class _DetailScreenState extends State<DetailScreen> {
                           height: 100,
                           width: 140,
                           fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            height: 100,
+                            width: 140,
+                            color: Colors.grey.shade200,
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -516,4 +542,4 @@ class _DetailScreenState extends State<DetailScreen> {
       ),
     );
   }
-} // <--- ĐÂY LÀ DẤU ĐÓNG CLASS QUAN TRỌNG NHẤT
+}
