@@ -53,7 +53,7 @@ class _DetailScreenState extends State<DetailScreen> {
     }
 
     try {
-      final url = Uri.parse('https://localhost:57566/MobileApi/GuiBinhLuan');
+      final url = Uri.parse('https://localhost:44324/MobileApi/GuiBinhLuan');
       final response = await http.post(
         url,
         body: {
@@ -94,7 +94,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
   Future<dynamic> fetchChiTietMonTuAPI(String id) async {
     final url = Uri.parse(
-      'https://localhost:58554/MobileApi/GetChiTietMon?id=$id',
+      'https://localhost:44324/MobileApi/GetChiTietMon?id=$id',
     );
     try {
       final response = await http.get(url);
