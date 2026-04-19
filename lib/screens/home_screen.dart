@@ -4,7 +4,10 @@ import '../models/mon_an.dart';
 import '../models/cart_provider.dart';
 import 'detail_screen.dart';
 import 'cart_screen.dart';
+import 'dart:convert'; // Để dùng jsonDecode
+import 'package:http/http.dart' as http; // Để gọi API
 
+// LƯU Ý: Phải đảm bảo file mon_an.dart có chứa class LoaiMon
 const Color primaryColor = Colors.red;
 const Color warningColor = Colors.orange;
 const Color darkTextColor = Color(0xFF333333);
@@ -19,6 +22,81 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   // Biến lưu ID danh mục đang chọn
   String selectedCategoryId = 'all';
+  late Future<List<LoaiMon>> _loaiMonFuture;
+  late Future<List<MonAn>> _monAnFuture;
+  @override
+  void initState() {
+    super.initState();
+    // --- 2. CHỈ GỌI API ĐÚNG 1 LẦN KHI MỞ APP ---
+    _loaiMonFuture = fetchLoaiMon();
+    _monAnFuture = fetchMonAn();
+  }
+  // --- BẠN DÁN 2 HÀM NÀY VÀO TRONG CLASS _HomeScreenState NHÉ ---
+
+  // 1. Hàm gọi API lấy danh sách Loại món (Danh mục)
+  Future<List<LoaiMon>> fetchLoaiMon() async {
+    try {
+      final url = Uri.parse('https://localhost:44324/MobileApi/GetLoaiMon');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+
+        // Thêm mục "Tất cả" lên đầu danh sách
+        List<LoaiMon> dsLoaiMon = [
+          LoaiMon(id: 'all', tenLoai: 'Tất cả', icon: Icons.restaurant_menu),
+        ];
+
+        // Map dữ liệu từ C# vào
+        dsLoaiMon.addAll(
+          data
+              .map(
+                (json) => LoaiMon(
+                  id: json['MaLoai'].toString(),
+                  tenLoai: json['TenLoai'] ?? 'Khác',
+                  // Tạm gán icon ngẫu nhiên vì DB thường không có icon
+                  icon: Icons.fastfood,
+                ),
+              )
+              .toList(),
+        );
+
+        return dsLoaiMon;
+      }
+    } catch (e) {
+      print("Lỗi lấy danh mục: $e");
+    }
+    // Nếu lỗi vẫn trả về mục Tất Cả để app không sập
+    return [LoaiMon(id: 'all', tenLoai: 'Tất cả', icon: Icons.restaurant_menu)];
+  }
+
+  // 2. Hàm gọi API lấy danh sách Món ăn
+  Future<List<MonAn>> fetchMonAn() async {
+    try {
+      final url = Uri.parse('https://localhost:44324/MobileApi/GetTatCaMonAn');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data
+            .map(
+              (json) => MonAn(
+                id: json['MaMon'].toString(),
+                tenMon: json['TenMon'] ?? 'Đang cập nhật',
+                moTa: json['MoTa'] ?? '',
+                donGia: (json['DonGia'] as num?)?.toDouble() ?? 0.0,
+                anhDaiDien:
+                    'https://localhost:44324/Content/Images/${json['AnhDaiDien']}',
+                maLoai: json['MaLoai'].toString(),
+              ),
+            )
+            .toList();
+      }
+    } catch (e) {
+      print("Lỗi lấy món ăn: $e");
+    }
+    return [];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               // Hiển thị số lượng nhỏ trên icon giỏ hàng cho xịn
               Positioned(
-                right: 8,
                 top: 8,
                 child: Consumer<CartProvider>(
                   builder: (context, cart, child) => cart.tongSL > 0
@@ -70,10 +147,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.yellow,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
                           child: Text(
                             '${cart.tongSL}',
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         )
@@ -92,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // --- 1. DANH MỤC MÓN ĂN (DATA THẬT) ---
             FutureBuilder<List<LoaiMon>>(
-              future: fetchLoaiMon(),
+              future: _loaiMonFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const SizedBox(
@@ -185,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 15),
 
             FutureBuilder<List<MonAn>>(
-              future: fetchMonAn(),
+              future: _monAnFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const SizedBox(
