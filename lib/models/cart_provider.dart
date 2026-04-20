@@ -94,7 +94,7 @@ class CartProvider with ChangeNotifier {
       // LƯU Ý 1: Nếu chạy máy ảo Android, đổi 'localhost' thành '10.0.2.2'
       // LƯU Ý 2: Nếu chạy điện thoại thật, dùng IP máy tính (VD: 192.168.1.15)
       var response = await http.post(
-        Uri.parse('http://192.168.1.xxx:PORT/api/Cart/DatHang'), // <-- NHỚ SỬA LẠI ĐƯỜNG DẪN NÀY
+        Uri.parse('https://localhost:44324/MobileApi/DatHang'), // Đã sửa thành đúng cổng C# của bạn
         body: json.encode(data),
         headers: {"Content-Type": "application/json"},
       );
