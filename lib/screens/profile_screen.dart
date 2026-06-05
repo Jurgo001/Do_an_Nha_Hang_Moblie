@@ -7,7 +7,7 @@ import 'edit_profile_screen.dart';
 import 'order_history_screen.dart';
 import 'voucher_exchange_screen.dart';
 import 'login_screen.dart';
-
+import 'cart_screen.dart'; // Đổi tên file này cho đúng với dự án của nhóm
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -66,6 +66,42 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
+            // 👉 BẮT ĐẦU ĐOẠN CODE NÚT ĐẾN GIỎ HÀNG:
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange, // Màu cam cho nổi bật
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(50), 
+                    ),
+                    elevation: 2,
+                  ),
+                  icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+                  label: const Text(
+                    "MỞ GIỎ HÀNG",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  onPressed: () {
+                    // Xây cầu chạy thẳng sang màn hình Giỏ Hàng
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CartScreen()), 
+                    );
+                  },
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 16), 
+            // 👉 KẾT THÚC ĐOẠN CODE
             // ── Logout button ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),

@@ -3,6 +3,9 @@ import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
 import 'register_screen.dart';
 import 'profile_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -48,17 +51,83 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Bật hiệu ứng xoay xoay loading
     setState(() => _isLoading = true);
 
-    // Simulate network call
-    await Future.delayed(const Duration(milliseconds: 1200));
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+    try {
+      // 1. GỌI API ĐĂNG NHẬP LÊN SERVER C#
+      // (Lưu ý: Thay 'DangNhap' thành đúng tên API mà nhóm bạn viết bên C#)
+      var response = await http.post(
+        Uri.parse('https://localhost:44324/MobileApi/DangNhap'), 
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "Email": _emailController.text,     // Lấy email user nhập
+          "Password": _passwordController.text // Lấy pass user nhập
+        }),
       );
+
+      // Tắt hiệu ứng loading khi đã có phản hồi từ server
+      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200) {
+        var jsonResponse = json.decode(response.body);
+
+        // NẾU ĐĂNG NHẬP THÀNH CÔNG (Server báo success = true)
+        if (jsonResponse['success'] == true) {
+          
+          // Lấy Mã Khách Hàng từ API trả về (Cần khớp với cấu trúc JSON của backend)
+          int maKH = jsonResponse['data']['MaKH'];
+
+          // --- PHẦN KÉT SẮT ---
+          // Mở két sắt ra và cất MaKH vào với chìa khóa 'maKH_logged_in'
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('maKH_logged_in', maKH);
+          // --------------------
+
+          if (mounted) {
+            // Hiện thông báo xanh lá góc dưới
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Đăng nhập thành công!"), 
+                backgroundColor: Colors.green,
+              ),
+            );
+            // Chuyển sang màn hình Profile (Hoặc Trang chủ)
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          }
+        } 
+        // NẾU SAI PASS HOẶC EMAIL (Server báo success = false)
+        else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(jsonResponse['message'] ?? "Sai tài khoản hoặc mật khẩu!"), 
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } else {
+        // Lỗi 404, 500,... từ server
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Lỗi máy chủ!"), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      // Lỗi do chưa bật Visual Studio, sai IP, hoặc sập mạng
+      setState(() => _isLoading = false);
+      print("Lỗi kết nối: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Không thể kết nối đến Server!"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
