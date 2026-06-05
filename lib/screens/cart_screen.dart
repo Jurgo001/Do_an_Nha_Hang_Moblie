@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/cart_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -14,12 +18,94 @@ class _CartScreenState extends State<CartScreen> {
   final TextEditingController _noteController =
       TextEditingController(); // Thêm biến lưu ghi chú
   int _paymentMethod = 1;
+  int _maKH = 0;
 
+  List<dynamic> _danhSachVoucher = []; 
+  double _giamGia = 0; // Biến này dùng để lưu số tiền được giảm nè
   // Giả lập thông tin người dùng (Sau này bạn có thể lấy từ API Đăng nhập)
-  final String _customerName = "Quang Minh";
-  final String _customerPhone = "00000000000";
-  final String _deliveryAddress =
-      "140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP.HCM";
+   // final String _customerName = "Quang Minh";
+  //final String _customerPhone = "00000000000";
+  //final String _deliveryAddress =
+      //"140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP.HCM";
+  String _customerName = "Đang tải...";
+  String _customerPhone = "Đang tải...";
+  String _deliveryAddress = "Đang tải thông tin...";
+
+  @override
+  void initState() {
+    super.initState();
+    // Gọi hàm này ngay khi màn hình giỏ hàng vừa xuất hiện
+    _loadUserDataAndFetchAPI(); 
+  }
+
+  // --- HÀM XỬ LÝ CHÍNH ---
+  Future<void> _loadUserDataAndFetchAPI() async {
+    // 1. MỞ KÉT SẮT TÌM MÃ KHÁCH HÀNG (Thay vì gõ cứng _maKH = 1)
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int? savedMaKH = prefs.getInt('maKH_logged_in');
+
+    if (savedMaKH != null) {
+      // 2. NẾU CÓ ĐĂNG NHẬP -> Dùng mã thật để gọi API
+      _maKH = savedMaKH; 
+      print("Đã lấy được MaKH từ két sắt là: $_maKH");
+
+      try {
+        var response = await http.get(
+          Uri.parse('https://localhost:44324/MobileApi/GetThongTinKhachHang?maKH=$_maKH')
+        );
+
+        if (response.statusCode == 200) {
+          var jsonResponse = json.decode(response.body);
+          if (jsonResponse['success'] == true) {
+            var data = jsonResponse['data'];
+            
+            setState(() {
+              _customerName = data['TenKH'] ?? "Chưa có tên";
+              _customerPhone = data['DienThoai'] ?? "Chưa có SĐT";
+              _deliveryAddress = data['DiaChi'] ?? "Chưa cập nhật địa chỉ";
+            });
+          }
+        }
+      } catch (e) {
+        print("Lỗi API Khách hàng: $e");
+      }
+
+// ========================================================
+      // 👉 DÁN THÊM ĐOẠN GỌI API VOUCHER VÀO NGAY ĐÂY NÈ
+      // ========================================================
+      try {
+        var responseVoucher = await http.get(
+          Uri.parse('https://localhost:44324/MobileApi/GetDanhSachVoucher')
+        );
+
+        if (responseVoucher.statusCode == 200) {
+          // Vì C# trả thẳng mảng Json(vouchers) nên hứng trực tiếp dạng List
+          var jsonResponse = json.decode(responseVoucher.body);
+          
+          if (jsonResponse is List) {
+            setState(() {
+              _danhSachVoucher = jsonResponse;
+            });
+            print("Đã tải thành công ${_danhSachVoucher.length} voucher!");
+          }
+        }
+      } catch (e) {
+        print("Lỗi API Voucher: $e");
+      }
+      // ========================================================
+
+
+    } else {
+      // 3. NẾU CHƯA ĐĂNG NHẬP
+      setState(() {
+        _customerName = "Khách vãng lai";
+        _customerPhone = "Vui lòng đăng nhập";
+        _deliveryAddress = "Chưa có địa chỉ giao hàng";
+      });
+    }
+  }
+
+
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -131,8 +217,9 @@ class _CartScreenState extends State<CartScreen> {
                     );
                     // Lưu ý: Nếu backend của bạn có hỗ trợ truyền thêm Ghi chú, bạn có thể truyền _noteController.text vào hàm này
                     bool success = await cart.datHangTrenMobile(
-                      _voucherController.text,
-                      2,
+                     _maKH, 
+                    _noteController.text,
+                    totalAmount,
                     );
                     Navigator.pop(context);
                     if (success) {
@@ -532,42 +619,130 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+ // =========================================================================
+  // 👉 KHỐI CODE ĐỒNG BỘ: VOUCHER VÀ PHƯƠNG THỨC THANH TOÁN (ĐÃ FIX NGOẶC)
+  // =========================================================================
+  
   Widget _buildVoucherInput() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.local_offer_outlined, color: Colors.orange),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: _voucherController,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: "Nhập mã giảm giá...",
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Ô nhập mã Voucher bằng tay
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.local_offer_outlined, color: Colors.orange),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _voucherController,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: "Nhập hoặc chọn mã giảm giá...",
+                  ),
+                ),
               ),
-            ),
+              TextButton(
+                onPressed: () {
+                  _applyVoucherLogic(_voucherController.text.trim());
+                },
+                child: const Text(
+                  "ÁP DỤNG",
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              if (_voucherController.text.isNotEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Áp dụng mã thành công!")),
-                );
-              }
-            },
-            child: const Text(
-              "ÁP DỤNG",
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+
+        // 2. Danh sách voucher chạy ngang để ấn chọn nhanh
+        _danhSachVoucher.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.only(left: 8.0),
+                child: Text("Bạn chưa có voucher nào", style: TextStyle(color: Colors.grey, fontSize: 13)),
+              )
+            : SizedBox(
+                height: 38,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _danhSachVoucher.length,
+                  itemBuilder: (context, index) {
+                    var v = _danhSachVoucher[index];
+                    String code = v['TenVoucher'] ?? 'VOUCHER';
+                    double value = (v['GiaTri'] ?? 0).toDouble();
+
+                    return GestureDetector(
+                      onTap: () {
+                        _voucherController.text = code;
+                        _applyVoucherLogic(code);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.orange.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.confirmation_number_outlined, size: 16, color: Colors.orange),
+                            const SizedBox(width: 6),
+                            Text(
+                              "$code (-${value.toInt()}đ)",
+                              style: const TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+      ],
     );
+  }
+
+  // Chép đè hàm này lên hàm cũ của bạn
+  void _applyVoucherLogic(String maNhapVao) {
+    if (maNhapVao.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng nhập hoặc chọn mã!")),
+      );
+      return;
+    }
+
+    // 👉 THÊM .trim() VÀO ĐÂY ĐỂ DỌN SẠCH KHOẢNG TRẮNG TỪ DATABASE
+    var voucherHopLe = _danhSachVoucher.where(
+      (v) => v['TenVoucher'].toString().trim().toUpperCase() == maNhapVao.trim().toUpperCase()
+    ).firstOrNull;
+
+    if (voucherHopLe != null) {
+      setState(() {
+        _giamGia = (voucherHopLe['GiaTri'] ?? 0).toDouble();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Áp dụng thành công! Đã giảm ${_giamGia.toInt()} đ"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      setState(() { _giamGia = 0; });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Mã không hợp lệ!"), backgroundColor: Colors.red),
+      );
+    }
   }
 
   Widget _buildPaymentMethods() {
@@ -623,8 +798,13 @@ class _CartScreenState extends State<CartScreen> {
       ),
     );
   }
+  // =========================================================================
 
   Widget _buildSummarySection(CartProvider cart) {
+    // 👉 BẠN PHẢI DÁN 3 DÒNG NÀY VÀO ĐÂY ĐỂ TÍNH TIỀN TRƯỚC:
+    double tamTinh = cart.tongThanhTien;
+    double tongCong = tamTinh - _giamGia;
+    if (tongCong < 0) tongCong = 0; // Đảm bảo tiền không bị âm
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -650,7 +830,7 @@ class _CartScreenState extends State<CartScreen> {
                   style: TextStyle(color: Colors.grey, fontSize: 16),
                 ),
                 Text(
-                  "${cart.tongThanhTien.toInt()} đ",
+                 "${tamTinh.toInt()} đ", // Đã đổi thành tamTinh cho gọn
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -676,6 +856,28 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ],
             ),
+
+            if (_giamGia > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Giảm giá Voucher:",
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                  Text(
+                    "- ${_giamGia.toInt()} đ",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
               child: Divider(),
@@ -688,7 +890,7 @@ class _CartScreenState extends State<CartScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  "${cart.tongThanhTien.toInt()} đ",
+                  "${tongCong.toInt()} đ",
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -712,11 +914,12 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 onPressed: () async {
                   if (_paymentMethod == 2) {
-                    _showQRCodeDialog(context, cart.tongThanhTien);
+                    _showQRCodeDialog(context, tongCong);
                   } else {
                     bool success = await cart.datHangTrenMobile(
-                      _voucherController.text,
-                      _paymentMethod,
+                     _maKH, 
+                     _noteController.text,
+                     tongCong,
                     );
                     if (success) {
                       Navigator.pop(context);
