@@ -77,39 +77,42 @@ class CartProvider with ChangeNotifier {
   // =========================================================================
   // PHẦN THÊM MỚI: HÀM GỌI API ĐỂ ĐẨY DỮ LIỆU THANH TOÁN LÊN SERVER C#
   // =========================================================================
-  Future<bool> datHangTrenMobile(String voucherCode, int paymentMethod) async {
-    // Nếu giỏ hàng trống thì báo lỗi luôn, không gọi API
+  Future<bool> datHangTrenMobile(int maKH, String ghiChu,double tongTienThanhToan) async {
     if (_list.isEmpty) return false; 
 
-    // Đóng gói dữ liệu giỏ hàng hiện tại thành format JSON
+    // 1. Đóng gói chuẩn 100% theo class OrderRequest bên C#
     var data = {
-      // Map từng món hàng thành dạng { id: "1", qty: 2 }
-      "cart": _list.map((e) => {"id": e.maSP, "qty": e.soLuong}).toList(),
-      "voucher": voucherCode,
-      "paymentMethod": paymentMethod
+      "MaKH": maKH, 
+      "GhiChu": ghiChu, 
+      "TongTienThanhToan": tongTienThanhToan, // 👉 GỬI KÈM SỐ TIỀN VỪA TÍNH LÊN C#
+      "Items": _list.map((e) => {
+        "MaMon": int.parse(e.maSP), // C# yêu cầu MaMon là số nguyên (int)
+        "SoLuong": e.soLuong,
+        "DonGia": e.donGia
+      }).toList()
     };
 
     try {
-      // Gọi lên Server C# của bạn
-      // LƯU Ý 1: Nếu chạy máy ảo Android, đổi 'localhost' thành '10.0.2.2'
-      // LƯU Ý 2: Nếu chạy điện thoại thật, dùng IP máy tính (VD: 192.168.1.15)
       var response = await http.post(
-        Uri.parse('https://localhost:44324/MobileApi/DatHang'), // Đã sửa thành đúng cổng C# của bạn
+        Uri.parse('https://localhost:44324/MobileApi/DatHang'),
         body: json.encode(data),
         headers: {"Content-Type": "application/json"},
       );
 
-      // Nếu Server C# trả về thành công (Mã 200)
       if (response.statusCode == 200) {
-        xoaTatCa(); // THÀNH CÔNG -> Xóa sạch giỏ hàng trên app
-        return true; 
-      } else {
-        print("Lỗi Server: ${response.statusCode}");
-        return false;
+        var jsonResponse = json.decode(response.body);
+        if (jsonResponse['success'] == true) {
+          xoaTatCa(); 
+          return true; 
+        } else {
+          print("Lỗi từ server: ${jsonResponse['message']}");
+          return false;
+        }
       }
+      return false;
     } catch (e) {
-      print("Lỗi kết nối khi gọi API Đặt hàng: $e");
-      return false; // Thất bại do mất mạng hoặc sai IP
+      print("Lỗi kết nối: $e");
+      return false; 
     }
   }
 }

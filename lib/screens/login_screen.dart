@@ -50,14 +50,18 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
 
-    // Simulate network call
+    // Giả lập gọi API
     await Future.delayed(const Duration(milliseconds: 1200));
+
     setState(() => _isLoading = false);
 
+    // Lưu phiên đăng nhập
     UserSession.isLoggedIn = true;
     UserSession.userName = mockUser.name;
+
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -100,7 +104,9 @@ class _LoginScreenState extends State<LoginScreen>
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.3,
+                                  ),
                                   blurRadius: 20,
                                   offset: const Offset(0, 8),
                                 ),

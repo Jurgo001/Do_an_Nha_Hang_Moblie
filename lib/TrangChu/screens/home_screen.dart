@@ -1,4 +1,3 @@
-import 'package:danh_sach_mon_an/models/mock_data.dart';
 import 'package:danh_sach_mon_an/models/user_session.dart';
 import 'package:danh_sach_mon_an/screens/login_screen.dart';
 
