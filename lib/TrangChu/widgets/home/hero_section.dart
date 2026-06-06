@@ -1,3 +1,5 @@
+import 'package:danh_sach_mon_an/TrangChu/screens/booking_screen.dart';
+
 import '../../../constants.dart';
 import 'package:flutter/material.dart';
 
@@ -17,7 +19,9 @@ class HeroSection extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
-          Positioned.fill(child: Container(color: kDark.withOpacity(0.72))),
+          Positioned.fill(
+            child: Container(color: kDark.withValues(alpha: 0.72)),
+          ),
           Positioned(
             right: 10,
             top: 10,
@@ -26,7 +30,10 @@ class HeroSection extends StatelessWidget {
               height: 280,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: kPrimary.withOpacity(0.3), width: 2),
+                border: Border.all(
+                  color: kPrimary.withValues(alpha: 0.3),
+                  width: 2,
+                ),
                 image: const DecorationImage(
                   image: AssetImage(
                     'assets/images/hero.png',
@@ -55,7 +62,7 @@ class HeroSection extends StatelessWidget {
                 Text(
                   'Hãy tận hưởng những món ăn thơm ngon với hương vị tuyệt vời, phong phú và chất lượng cao.',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -74,9 +81,19 @@ class HeroSection extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'Đặt Bàn Ngay',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BookingScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Đặt Bàn Ngay',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],

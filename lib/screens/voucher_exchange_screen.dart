@@ -277,11 +277,11 @@ class _GiftCard extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: canAfford ? color.withOpacity(0.3) : AppColors.border,
+            color: canAfford ? color.withValues(alpha: 0.3) : AppColors.border,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -297,7 +297,7 @@ class _GiftCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -333,7 +333,7 @@ class _GiftCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: canAfford
-                          ? color.withOpacity(0.12)
+                          ? color.withValues(alpha: 0.12)
                           : AppColors.surfaceVariant,
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -442,11 +442,11 @@ class _VoucherCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isUsed ? AppColors.border : accentColor.withOpacity(0.3),
+          color: isUsed ? AppColors.border : accentColor.withValues(alpha: 0.3),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -473,7 +473,7 @@ class _VoucherCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: isUsed
                   ? AppColors.surfaceVariant
-                  : accentColor.withOpacity(0.12),
+                  : accentColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(Icons.percent_rounded, color: accentColor, size: 22),
@@ -516,7 +516,7 @@ class _VoucherCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isUsed
                     ? AppColors.surfaceVariant
-                    : accentColor.withOpacity(0.12),
+                    : accentColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(

@@ -18,7 +18,7 @@ class SuccessView extends StatelessWidget {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: kPrimary.withOpacity(0.1),
+                color: kPrimary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.check_circle, color: kPrimary, size: 56),
