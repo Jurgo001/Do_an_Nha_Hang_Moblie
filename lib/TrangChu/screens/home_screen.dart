@@ -1,3 +1,6 @@
+import 'package:danh_sach_mon_an/models/user_session.dart';
+import 'package:danh_sach_mon_an/screens/login_screen.dart';
+
 import '../../constants.dart';
 import 'package:flutter/material.dart';
 import '../widgets/home/hero_section.dart';
@@ -10,7 +13,7 @@ import '../widgets/home/footer_section.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,13 +39,35 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'Đăng Nhập',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ),
+              UserSession.isLoggedIn
+                  ? Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Row(
+                        children: [
+                          Text(
+                            UserSession.userName ?? '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Đăng Nhập',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ),
             ],
           ),
           const SliverToBoxAdapter(

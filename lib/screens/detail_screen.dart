@@ -197,7 +197,7 @@ class _DetailScreenState extends State<DetailScreen> {
       height: 280,
       width: double.infinity,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
+      errorBuilder: (_, _, _) => Container(
         height: 280,
         width: double.infinity,
         color: Colors.grey.shade200,
@@ -318,7 +318,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   base64Decode(base64Str),
                   height: 100,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Text(
+                  errorBuilder: (_, _, _) => const Text(
                     "Lỗi tải ảnh",
                     style: TextStyle(color: Colors.red, fontSize: 10),
                   ),
@@ -421,11 +421,12 @@ class _DetailScreenState extends State<DetailScreen> {
     return FutureBuilder<List<MonAn>>(
       future: _featuredFuture, // DÙNG BIẾN TRONG INITSTATE THAY VÌ GỌI HÀM
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const SizedBox(
             height: 180,
             child: Center(child: CircularProgressIndicator()),
           );
+        }
 
         final list = snapshot.data!.take(5).toList();
         if (list.isEmpty) return const SizedBox();
@@ -456,7 +457,7 @@ class _DetailScreenState extends State<DetailScreen> {
                           height: 100,
                           width: 140,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             height: 100,
                             width: 140,
                             color: Colors.grey.shade200,

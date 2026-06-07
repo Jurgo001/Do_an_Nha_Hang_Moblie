@@ -1,3 +1,5 @@
+import 'package:danh_sach_mon_an/TrangChu/navigation/main_screen.dart';
+import 'package:danh_sach_mon_an/models/user_session.dart';
 import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../models/mock_data.dart';
@@ -278,7 +280,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                MaterialPageRoute(builder: (_) => const MainScreen()),
                 (route) => false,
               );
             },
@@ -348,7 +350,7 @@ class _ProfileHeaderCard extends StatelessWidget {
               height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
               ),
             ),
           ),
@@ -360,7 +362,7 @@ class _ProfileHeaderCard extends StatelessWidget {
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
           ),
@@ -404,7 +406,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                           Text(
                             phone,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 13,
                             ),
                           ),
@@ -426,7 +428,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -443,7 +445,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -610,7 +612,7 @@ class _StatCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -684,7 +686,7 @@ class _VoucherWalletSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -724,7 +726,7 @@ class _VoucherWalletSection extends StatelessWidget {
           if (mockVouchers.isEmpty)
             _EmptyVoucherState()
           else
-            ...mockVouchers.map((v) => _VoucherTile(voucher: v)).toList(),
+            ...mockVouchers.map((v) => _VoucherTile(voucher: v)),
         ],
       ),
     );

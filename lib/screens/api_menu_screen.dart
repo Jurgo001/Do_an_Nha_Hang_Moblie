@@ -183,8 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   );
                 }
-                if (!snapshot.hasData || snapshot.data!.isEmpty)
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const SizedBox();
+                }
 
                 final danhMuc = snapshot.data!;
                 return SizedBox(
@@ -218,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: primaryColor.withOpacity(0.3),
+                                      color: primaryColor.withValues(alpha: 0.3),
                                       blurRadius: 8,
                                       offset: const Offset(0, 3),
                                     ),
@@ -276,8 +277,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   );
                 }
-                if (!snapshot.hasData || snapshot.data!.isEmpty)
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const SizedBox();
+                }
 
                 // Lấy 5 món đầu tiên làm Best Seller
                 final topBestSeller = snapshot.data!.take(5).toList();
@@ -681,7 +683,7 @@ class _HomeScreenState extends State<HomeScreen> {
       border: Border.all(color: Colors.grey.shade100),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.04),
+          color: Colors.black.withValues(alpha: 0.04),
           blurRadius: 15,
           offset: const Offset(0, 5),
         ),

@@ -1,3 +1,6 @@
+import 'package:danh_sach_mon_an/TrangChu/navigation/main_screen.dart';
+import 'package:danh_sach_mon_an/models/mock_data.dart';
+import 'package:danh_sach_mon_an/models/user_session.dart';
 import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../widgets/common_widgets.dart';
@@ -51,39 +54,17 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
-    
-    // Bật hiệu ứng xoay xoay loading
+
     setState(() => _isLoading = true);
 
-    try {
-      // 1. GỌI API ĐĂNG NHẬP LÊN SERVER C#
-      // (Lưu ý: Thay 'DangNhap' thành đúng tên API mà nhóm bạn viết bên C#)
-      var response = await http.post(
-        Uri.parse('https://localhost:44324/MobileApi/DangNhap'), 
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          "Email": _emailController.text,     // Lấy email user nhập
-          "Password": _passwordController.text // Lấy pass user nhập
-        }),
-      );
+    // Giả lập gọi API
+    await Future.delayed(const Duration(milliseconds: 1200));
 
-      // Tắt hiệu ứng loading khi đã có phản hồi từ server
-      setState(() => _isLoading = false);
+    setState(() => _isLoading = false);
 
-      if (response.statusCode == 200) {
-        var jsonResponse = json.decode(response.body);
-
-        // NẾU ĐĂNG NHẬP THÀNH CÔNG (Server báo success = true)
-        if (jsonResponse['success'] == true) {
-          
-          // Lấy Mã Khách Hàng từ API trả về (Cần khớp với cấu trúc JSON của backend)
-          int maKH = jsonResponse['data']['MaKH'];
-
-          // --- PHẦN KÉT SẮT ---
-          // Mở két sắt ra và cất MaKH vào với chìa khóa 'maKH_logged_in'
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('maKH_logged_in', maKH);
-          // --------------------
+    // Lưu phiên đăng nhập
+    UserSession.isLoggedIn = true;
+    UserSession.userName = mockUser.name;
 
           if (mounted) {
             // Hiện thông báo xanh lá góc dưới
@@ -450,7 +431,7 @@ class _SocialButton extends StatelessWidget {
           border: Border.all(color: Colors.grey[300]!),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

@@ -344,7 +344,7 @@ class _CartScreenState extends State<CartScreen> {
                         const SizedBox(height: 10),
                         ...cart.list
                             .map((item) => _buildCartItem(item, cart))
-                            .toList(),
+                            ,
 
                         // --- TÍNH NĂNG MỚI: GHI CHÚ CHO QUÁN ---
                         const SizedBox(height: 10),
@@ -466,7 +466,7 @@ class _CartScreenState extends State<CartScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
+            color: Colors.grey.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -506,7 +506,7 @@ class _CartScreenState extends State<CartScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -854,7 +854,7 @@ class _CartScreenState extends State<CartScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withValues(alpha: 0.2),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),

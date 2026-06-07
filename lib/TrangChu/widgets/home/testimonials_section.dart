@@ -49,7 +49,7 @@ class TestimonialsSection extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -81,8 +81,8 @@ class TestimonialsSection extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isHighlight
-                              ? Colors.white.withOpacity(0.2)
-                              : kPrimary.withOpacity(0.1),
+                              ? Colors.white.withValues(alpha: 0.2)
+                              : kPrimary.withValues(alpha: 0.1),
                         ),
                         child: Center(
                           child: Text(

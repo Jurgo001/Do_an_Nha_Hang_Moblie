@@ -171,10 +171,11 @@ class _MenuScreenState extends State<MenuScreen> {
             child: FutureBuilder<List<LoaiMon>>(
               future: _loaiMonFuture,
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return const Center(
                     child: CircularProgressIndicator(color: kPrimary),
                   );
+                }
                 final danhMuc = snapshot.data!;
                 return ListView.builder(
                   scrollDirection: Axis.horizontal,
@@ -229,12 +230,14 @@ class _MenuScreenState extends State<MenuScreen> {
             child: FutureBuilder<List<MonAn>>(
               future: _monAnFuture,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting)
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(color: kPrimary),
                   );
-                if (!snapshot.hasData || snapshot.data!.isEmpty)
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return _buildEmpty();
+                }
 
                 // Lọc món theo Category và Search
                 final filteredList = snapshot.data!.where((item) {
@@ -296,7 +299,7 @@ class _MenuScreenState extends State<MenuScreen> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -312,7 +315,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 width: 64,
                 height: 64,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   width: 64,
                   height: 64,
                   color: Colors.grey[200],

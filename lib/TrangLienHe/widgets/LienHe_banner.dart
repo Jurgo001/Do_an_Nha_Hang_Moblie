@@ -34,7 +34,7 @@ class LienHeBanner extends StatelessWidget {
         Container(
           width: double.infinity,
           height: 280,
-          color: Colors.black.withOpacity(0.45),
+          color: Colors.black.withValues(alpha: 0.45),
         ),
 
         // Layer 3: Nội dung chữ

@@ -144,7 +144,7 @@ class _BookingScreenState extends State<BookingScreen> {
           Text(
             'Đặt bàn ngay hôm nay để đảm bảo chỗ ngồi tốt nhất.',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 12,
             ),
           ),
