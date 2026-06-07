@@ -86,7 +86,7 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     isEditing ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới",
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kDark),
                   ),

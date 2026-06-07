@@ -57,14 +57,27 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _isLoading = true);
 
-    // Giả lập gọi API
-    await Future.delayed(const Duration(milliseconds: 1200));
+    try {
+      // Gọi API Đăng nhập
+      var response = await http.post(
+        Uri.parse('https://localhost:44324/MobileApi/DangNhap'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "TaiKhoan": _emailController.text.trim(), // Hoặc "Email", "DienThoai" tùy backend của bạn
+          "Password": _passwordController.text
+        }),
+      );
 
-    setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
 
-    // Lưu phiên đăng nhập
-    UserSession.isLoggedIn = true;
-    UserSession.userName = mockUser.name;
+      if (response.statusCode == 200) {
+        var jsonResponse = json.decode(response.body);
+        
+        if (jsonResponse['success'] == true) {
+          // Lưu mã khách hàng vào két sắt
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          int maKH = jsonResponse['data']['MaKH'];
+          await prefs.setInt('maKH_logged_in', maKH);
 
           if (mounted) {
             // Hiện thông báo xanh lá góc dưới
@@ -81,9 +94,8 @@ class _LoginScreenState extends State<LoginScreen>
               (route) => false,
             );
           }
-        } 
-        // NẾU SAI PASS HOẶC EMAIL (Server báo success = false)
-        else {
+        } else {
+          // NẾU SAI PASS HOẶC EMAIL (Server báo success = false)
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
