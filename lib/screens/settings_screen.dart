@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../widgets/common_widgets.dart';
 import 'login_screen.dart';
+import 'edit_profile_screen.dart';
+import 'address_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,8 +14,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
-  String _selectedLanguage = 'Tiếng Việt';
 
   @override
   Widget build(BuildContext context) {
@@ -40,14 +40,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 iconColor: kPrimary,
                 title: 'Cập nhật thông tin cá nhân',
                 subtitle: 'Tên, số điện thoại, email',
-                onTap: () => _showComingSoon(context),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                  );
+                },
               ),
               MenuListItem(
                 icon: Icons.location_on_outlined,
                 iconColor: const Color(0xFF6C5CE7),
                 title: 'Địa chỉ giao hàng',
                 subtitle: 'Quản lý địa chỉ nhận hàng',
-                onTap: () => _showComingSoon(context),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddressManagementScreen()),
+                  );
+                },
               ),
               MenuListItem(
                 icon: Icons.credit_card_outlined,
@@ -75,43 +85,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   activeColor: kPrimary,
                 ),
                 onTap: null,
-              ),
-              MenuListItem(
-                icon: Icons.dark_mode_outlined,
-                iconColor: const Color(0xFF2D3436),
-                title: 'Chế độ Tối',
-                subtitle: 'Giao diện tối cho mắt dễ chịu hơn',
-                trailing: Switch.adaptive(
-                  value: _darkModeEnabled,
-                  onChanged: (v) => setState(() => _darkModeEnabled = v),
-                  activeColor: kPrimary,
-                ),
-                onTap: null,
-              ),
-              MenuListItem(
-                icon: Icons.language_outlined,
-                iconColor: const Color(0xFF0984E3),
-                title: 'Ngôn ngữ',
-                subtitle: _selectedLanguage,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _selectedLanguage,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.grey[400],
-                      size: 20,
-                    ),
-                  ],
-                ),
-                onTap: () => _showLanguagePicker(context),
                 showDivider: false,
               ),
             ],
@@ -121,13 +94,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SectionHeader(title: 'Hỗ trợ'),
           _SettingsCard(
             children: [
-              MenuListItem(
-                icon: Icons.help_outline_rounded,
-                iconColor: Colors.green,
-                title: 'Trung tâm trợ giúp',
-                subtitle: 'FAQ, hướng dẫn sử dụng',
-                onTap: () => _showComingSoon(context),
-              ),
               MenuListItem(
                 icon: Icons.chat_outlined,
                 iconColor: kPrimary,
@@ -141,13 +107,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Đánh giá ứng dụng',
                 subtitle: 'Chia sẻ trải nghiệm của bạn',
                 onTap: () => _showComingSoon(context),
-              ),
-              MenuListItem(
-                icon: Icons.info_outline_rounded,
-                iconColor: Colors.grey[600]!,
-                title: 'Về chúng tôi',
-                subtitle: 'Phiên bản 1.0.0',
-                onTap: () {},
                 showDivider: false,
               ),
             ],
@@ -205,61 +164,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 2),
       ),
-    );
-  }
-
-  void _showLanguagePicker(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        final langs = ['Tiếng Việt', 'English', '中文'];
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Chọn ngôn ngữ',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              ...langs.map(
-                (lang) => ListTile(
-                  leading: Icon(
-                    lang == _selectedLanguage
-                        ? Icons.check_circle_rounded
-                        : Icons.circle_outlined,
-                    color: lang == _selectedLanguage
-                        ? kPrimary
-                        : Colors.grey[300],
-                  ),
-                  title: Text(
-                    lang,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  onTap: () {
-                    setState(() => _selectedLanguage = lang);
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
     );
   }
 

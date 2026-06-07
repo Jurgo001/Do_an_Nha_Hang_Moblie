@@ -3,6 +3,7 @@ import '../constants.dart';
 import '../models/mock_data.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class VoucherExchangeScreen extends StatefulWidget {
   const VoucherExchangeScreen({super.key});
@@ -14,12 +15,59 @@ class VoucherExchangeScreen extends StatefulWidget {
 class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _userPoints = mockUser.loyaltyPoints;
+  int _userPoints = 0;
+  int _maKH = 0;
+  List<dynamic> _realVouchers = [];
+  List<dynamic> _myVouchers = [];
+  bool _isLoadingData = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int? maKH = prefs.getInt('maKH_logged_in');
+    
+    if (maKH != null) {
+      _maKH = maKH;
+      try {
+        final diemFuture = http.get(Uri.parse('https://localhost:44324/MobileApi/GetDiemHienTai?maKH=$_maKH'));
+        final voucherFuture = http.get(Uri.parse('https://localhost:44324/MobileApi/GetDanhSachVoucher'));
+        final myVoucherFuture = http.get(Uri.parse('https://localhost:44324/MobileApi/GetVoucherCuaToi?maKH=$_maKH'));
+        
+        final results = await Future.wait([diemFuture, voucherFuture, myVoucherFuture]);
+        
+        if (results[0].statusCode == 200) {
+          var jsonDiem = json.decode(results[0].body);
+          if (jsonDiem['success'] == true) {
+             _userPoints = jsonDiem['diem'] ?? 0;
+          }
+        }
+
+        if (results[1].statusCode == 200) {
+          var jsonVoucher = json.decode(results[1].body);
+          if (jsonVoucher is List) {
+            _realVouchers = jsonVoucher;
+          }
+        }
+
+        if (results[2].statusCode == 200) {
+          var jsonMyVoucher = json.decode(results[2].body);
+          if (jsonMyVoucher['success'] == true && jsonMyVoucher['data'] != null) {
+            _myVouchers = jsonMyVoucher['data'];
+          }
+        }
+      } catch (e) {
+        print("Lỗi tải data đổi điểm: $e");
+      }
+    }
+    setState(() {
+      _isLoadingData = false;
+    });
   }
 
   @override
@@ -29,18 +77,16 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
   }
 
   void _handleRedeem(Map<String, dynamic> gift) {
-    final points = gift['points'] as int;
+    // Ép kiểu lấy dữ liệu từ API thật
+    final points = (gift['DiemDoi'] ?? 0) as int;
+    final maVoucher = gift['MaVoucher'] ?? 0;
+    final title = gift['TenVoucher'] ?? 'Voucher';
+
     if (_userPoints < points) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Bạn không đủ điểm! Cần thêm ${points - _userPoints} điểm nữa.',
-          ),
+          content: Text('Bạn không đủ điểm! Cần thêm ${points - _userPoints} điểm.'),
           backgroundColor: Colors.red[800],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
         ),
       );
       return;
@@ -49,67 +95,56 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Xác nhận đổi điểm',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-        content: RichText(
-          text: TextSpan(
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
-              height: 1.5,
-            ),
-            children: [
-              const TextSpan(text: 'Bạn muốn đổi '),
-              TextSpan(
-                text: '$points điểm',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: kPrimary,
-                ),
-              ),
-              const TextSpan(text: ' để nhận '),
-              TextSpan(
-                text: gift['title'] as String,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const TextSpan(text: '?'),
-            ],
-          ),
-        ),
+        title: const Text('Xác nhận đổi điểm', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('Bạn muốn dùng $points điểm để đổi $title?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Hủy',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
+            child: Text('Hủy', style: TextStyle(color: Colors.grey[600])),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              minimumSize: const Size(80, 40),
-            ),
-            onPressed: () {
-              setState(() => _userPoints -= points);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('🎉 Đổi thành công! Bạn còn $_userPoints điểm'),
-                  backgroundColor: Colors.green,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+            onPressed: () async {
+              Navigator.pop(context); // Đóng Dialog
+
+              // GỌI API ĐỔI ĐIỂM THẬT
+              try {
+                // LƯU Ý: Đổi localhost thành 10.0.2.2 nếu dùng máy ảo Android
+                var response = await http.post(
+                  Uri.parse('https://localhost:44324/MobileApi/DoiVoucher'), // ĐỔI IP Ở ĐÂY NẾU CẦN
+                  headers: {"Content-Type": "application/json"},
+                  body: json.encode({
+                    "MaKH": _maKH,
+                    "MaVoucher": maVoucher
+                  }),
+                );
+
+                if (response.statusCode == 200) {
+                  var jsonResponse = json.decode(response.body);
+                  if (jsonResponse['success'] == true) {
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(jsonResponse['message']), backgroundColor: Colors.green),
+                    );
+                    
+                    // Gọi tải lại dữ liệu từ đầu để cập nhật Điểm và Danh sách Voucher
+                    setState(() => _isLoadingData = true);
+                    await _fetchData();
+                    _tabController.animateTo(1); // Chuyển sang tab Voucher của tôi
+
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(jsonResponse['message']), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Lỗi gọi API: $e'), backgroundColor: Colors.red),
+                );
+              }
             },
-            child: const Text('Xác nhận'),
+            child: const Text('Xác nhận', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -145,13 +180,15 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _GiftLibraryTab(userPoints: _userPoints, onRedeem: _handleRedeem),
-          const _MyVouchersTab(),
-        ],
-      ),
+      body: _isLoadingData 
+          ? const Center(child: CircularProgressIndicator(color: kPrimary))
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _GiftLibraryTab(userPoints: _userPoints, realVouchers: _realVouchers, onRedeem: _handleRedeem),
+                _MyVouchersTab(diemHienTai: _userPoints, apiVouchers: _myVouchers),
+              ],
+            ),
     );
   }
 }
@@ -161,12 +198,16 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
 // ─────────────────────────────────────────
 class _GiftLibraryTab extends StatelessWidget {
   final int userPoints;
+  final List<dynamic> realVouchers;
   final void Function(Map<String, dynamic>) onRedeem;
 
-  const _GiftLibraryTab({required this.userPoints, required this.onRedeem});
+  const _GiftLibraryTab({required this.userPoints, required this.realVouchers, required this.onRedeem});
 
   @override
   Widget build(BuildContext context) {
+    final list = realVouchers.isNotEmpty ? realVouchers : mockGiftVouchers;
+    final isReal = realVouchers.isNotEmpty;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -176,25 +217,33 @@ class _GiftLibraryTab extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
+              // ĐỒNG BỘ MÀU SẮC ĐIỂM KHẢ DỤNG: Giống bên MyVouchersTab
               gradient: const LinearGradient(
-                colors: [Color(0xFF2D3436), Color(0xFF636E72)],
+                colors: [kPrimary, Color(0xFFFF9F43)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: kPrimary.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange,
-                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.stars_rounded,
                     color: Colors.white,
-                    size: 24,
+                    size: 36,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -202,11 +251,12 @@ class _GiftLibraryTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Số dư khả dụng',
-                      style: TextStyle(color: Colors.white60, fontSize: 13),
+                      'Điểm khả dụng của bạn',
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
+                    const SizedBox(height: 4),
                     Text(
-                      '$userPoints Điểm',
+                      '$userPoints',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -242,14 +292,17 @@ class _GiftLibraryTab extends StatelessWidget {
               mainAxisSpacing: 12,
               childAspectRatio: 1.0,
             ),
-            itemCount: mockGiftVouchers.length,
+            itemCount: list.length,
             itemBuilder: (context, index) {
-              final gift = mockGiftVouchers[index];
-              final canAfford = userPoints >= (gift['points'] as int);
+              final gift = list[index];
+              final points = isReal ? (gift['DiemDoi'] ?? 0) as int : (gift['points'] as int);
+              final canAfford = userPoints >= points;
+              
               return _GiftCard(
                 gift: gift,
+                isReal: isReal,
                 canAfford: canAfford,
-                onTap: () => onRedeem(gift),
+                onTap: () => onRedeem(gift as Map<String, dynamic>),
               );
             },
           ),
@@ -261,18 +314,25 @@ class _GiftLibraryTab extends StatelessWidget {
 
 class _GiftCard extends StatelessWidget {
   final Map<String, dynamic> gift;
+  final bool isReal;
   final bool canAfford;
   final VoidCallback onTap;
 
   const _GiftCard({
     required this.gift,
+    this.isReal = false,
     required this.canAfford,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = Color(gift['color'] as int);
+    final title = isReal ? (gift['TenVoucher'] ?? 'Voucher') : (gift['title'] as String);
+    final desc = isReal ? 'Giảm ${(gift['GiaTri'] ?? 0).toInt()}đ' : (gift['desc'] as String);
+    final points = isReal ? (gift['DiemDoi'] ?? 0) as int : (gift['points'] as int);
+    
+    final colorList = const [Color(0xFF00B894), Color(0xFFFF6B6B), Color(0xFF6C5CE7), Color(0xFFFFC107)];
+    final color = isReal ? colorList[(title.length + points) % 4] : Color(gift['color'] as int);
 
     return GestureDetector(
       onTap: onTap,
@@ -312,7 +372,7 @@ class _GiftCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    gift['title'] as String,
+                    title,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -323,7 +383,7 @@ class _GiftCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    gift['desc'] as String,
+                    desc,
                   style: TextStyle(
                       fontSize: 11,
                     color: Color.fromARGB(255, 189, 189, 189),
@@ -342,7 +402,7 @@ class _GiftCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${gift['points']} điểm',
+                      '$points điểm',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -385,80 +445,101 @@ class _GiftCard extends StatelessWidget {
 // ─────────────────────────────────────────
 // My Vouchers Tab
 // ─────────────────────────────────────────
-class _MyVouchersTab extends StatefulWidget {
-  const _MyVouchersTab();
+class _MyVouchersTab extends StatelessWidget {
+  final int diemHienTai;
+  final List<dynamic> apiVouchers;
 
-  @override
-  State<_MyVouchersTab> createState() => _MyVouchersTabState();
-}
-
-class _MyVouchersTabState extends State<_MyVouchersTab> {
-  bool _isLoading = true;
-  List<dynamic> _apiVouchers = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchMyVouchers();
-  }
-
-  Future<void> _fetchMyVouchers() async {
-    try {
-      var res = await http.get(Uri.parse('https://localhost:44324/MobileApi/GetDanhSachVoucher'));
-      if (res.statusCode == 200) {
-        var jsonResponse = json.decode(res.body);
-        if (jsonResponse is List) {
-          setState(() => _apiVouchers = jsonResponse);
-        }
-      }
-    } catch (e) {
-      print("Lỗi API My Vouchers: $e");
-    }
-    setState(() => _isLoading = false);
-  }
+  const _MyVouchersTab({
+    required this.diemHienTai,
+    required this.apiVouchers,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_apiVouchers.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 64,
-              color: Color.fromARGB(255, 189, 189, 189),
+    return Column(
+      children: [
+        // ── 1. Thẻ Điểm khả dụng (Header) ──
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [kPrimary, Color(0xFFFF9F43)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            SizedBox(height: 12),
-            Text(
-              'Bạn chưa có voucher nào',
-              style: TextStyle(
-                color: Color.fromARGB(255, 117, 117, 117),
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: kPrimary.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Hãy đổi điểm để nhận ưu đãi!',
-              style: TextStyle(color: Color.fromARGB(255, 189, 189, 189), fontSize: 13),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.stars_rounded, color: Colors.white, size: 36),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Điểm khả dụng của bạn',
+                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$diemHienTai',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      );
-    }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _apiVouchers.length,
-      itemBuilder: (context, index) {
-        final v = _apiVouchers[index];
-        return _VoucherCard(voucher: v);
-      },
+        // ── 2. Danh sách Voucher (Body) ──
+        Expanded(
+          child: apiVouchers.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey.shade400),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Bạn chưa có voucher nào',
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Hãy đổi điểm để nhận ngay ưu đãi!',
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: apiVouchers.length,
+                  itemBuilder: (context, index) {
+                    return _VoucherCard(voucher: apiVouchers[index]);
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
@@ -469,12 +550,13 @@ class _VoucherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String code = voucher['TenVoucher'] ?? 'VOUCHER';
-    final double value = (voucher['GiaTri'] ?? 0).toDouble();
-    final String title = 'Giảm ${value.toInt()}đ';
-    final bool isUsed = false; // Backend chưa có trạng thái nên mặc định false
+    final String tenVoucher = voucher['TenVoucher'] ?? 'Voucher';
+    final String maCode = voucher['MaCode'] ?? '';
+    final String ngayHetHan = voucher['NgayHetHan'] ?? 'Không rõ';
+    final bool conHan = voucher['ConHan'] ?? false; // Lấy trạng thái từ Backend
 
-    final accentColor = isUsed ? Colors.grey[600]! : Colors.green;
+    // Nếu Còn Hạn -> Màu Đỏ (kPrimary), Nếu Hết Hạn -> Màu Xám
+    final Color accentColor = conHan ? kPrimary : Colors.grey.shade500;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -482,93 +564,101 @@ class _VoucherCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isUsed ? Colors.grey[300]! : accentColor.withOpacity(0.3),
+          color: conHan ? accentColor.withOpacity(0.4) : Colors.grey.shade300,
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Row(
         children: [
-          // Left color strip
+          // Dải màu bên trái (Style giống chiếc Vé - Ticket)
           Container(
-            width: 6,
-            height: 80,
+            width: 8,
+            height: 90,
             decoration: BoxDecoration(
-              color: isUsed ? Colors.grey[300] : accentColor,
+              color: accentColor,
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                bottomLeft: Radius.circular(16),
+                topLeft: Radius.circular(15),
+                bottomLeft: Radius.circular(15),
               ),
             ),
-          ),
-          const SizedBox(width: 14),
-          // Icon
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isUsed
-                  ? Colors.grey[200]
-                  : accentColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.percent_rounded, color: accentColor, size: 22),
           ),
           const SizedBox(width: 12),
-          // Info
+          // Icon
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.local_activity_rounded, color: accentColor, size: 24),
+          ),
+          const SizedBox(width: 12),
+          // Thông tin Voucher
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: isUsed
-                      ? Colors.grey[600]
-                      : kDark,
-                    decoration: isUsed ? TextDecoration.lineThrough : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tenVoucher,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: conHan ? kDark : Colors.grey.shade600,
+                      decoration: conHan ? null : TextDecoration.lineThrough,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Mã: $code',
-                style: TextStyle(
-                    fontSize: 12,
-                  color: Colors.grey[600],
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(height: 4),
+                  Text(
+                    'Mã: $maCode',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.timer_outlined, size: 14, color: accentColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        'HSD: $ngayHetHan',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: accentColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          // Status badge
-          Padding(
-            padding: const EdgeInsets.only(right: 14),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          // Nhãn "Hết hạn" ở góc phải
+          if (!conHan)
+            Container(
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: isUsed
-                  ? Colors.grey[200]
-                    : accentColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                isUsed ? 'Đã dùng' : 'Sẵn sàng',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: accentColor,
-                ),
+              child: const Text(
+                'Hết hạn',
+                style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
               ),
             ),
-          ),
         ],
       ),
     );

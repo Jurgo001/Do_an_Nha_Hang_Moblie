@@ -57,15 +57,24 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _isLoading = true);
 
+    // Nhận diện xem người dùng đang nhập Email hay Số điện thoại
+    String inputData = _emailController.text.trim();
+    bool isEmail = inputData.contains('@');
+    
+    Map<String, dynamic> requestBody = {
+      "TaiKhoan": inputData,
+      "Email": isEmail ? inputData : "",        // Truyền rỗng để C# không báo lỗi null
+      "DienThoai": isEmail ? "" : inputData,    // Truyền rỗng nếu là Email
+      "Password": _passwordController.text.trim()
+    };
+    
+
     try {
       // Gọi API Đăng nhập
       var response = await http.post(
         Uri.parse('https://localhost:44324/MobileApi/DangNhap'),
         headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          "TaiKhoan": _emailController.text.trim(), // Hoặc "Email", "DienThoai" tùy backend của bạn
-          "Password": _passwordController.text
-        }),
+        body: json.encode(requestBody),
       );
 
       setState(() => _isLoading = false);

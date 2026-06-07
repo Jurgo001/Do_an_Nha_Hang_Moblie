@@ -1,6 +1,7 @@
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import '../constants.dart';
-import '../models/mock_data.dart';
 import '../widgets/common_widgets.dart';
 import 'address_management_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,7 +23,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isSaving = false;
   String _defaultAddress = "Đang tải...";
   int _maKH = 0;
-
+  File? _imageFile;
+  String? _base64Image;
+  String _currentAvatarUrl = "";
   @override
   void initState() {
     super.initState();
@@ -44,6 +47,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _nameController.text = jsonRes['data']['TenKH'] ?? '';
             _phoneController.text = jsonRes['data']['DienThoai'] ?? '';
             _emailController.text = jsonRes['data']['Email'] ?? '';
+            _currentAvatarUrl = jsonRes['data']['Avarta'] ?? 'default_user.jpg';
           });
         }
       }
@@ -52,6 +56,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     _fetchDefaultAddress();
+  }
+  String get avatarInitials {
+    if (_nameController.text.isEmpty || _nameController.text == "Khách vãng lai") return "U";
+    var parts = _nameController.text.trim().split(' ');
+    if (parts.length > 1) {
+      return parts[0][0].toUpperCase() + parts.last[0].toUpperCase();
+    }
+    return _nameController.text[0].toUpperCase();
   }
 
   Future<void> _fetchDefaultAddress() async {
@@ -92,26 +104,68 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _emailController.dispose();
     super.dispose();
   }
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+      List<int> imageBytes = await _imageFile!.readAsBytes();
+      _base64Image = base64Encode(imageBytes);
+    }
+  }
+
+  // Hàm phụ trợ để load đúng loại ảnh (File, Network hoặc Null)
+  ImageProvider? _getAvatarProvider() {
+    if (_imageFile != null) return FileImage(_imageFile!);
+    if (_currentAvatarUrl.isNotEmpty && _currentAvatarUrl != "default_user.jpg") {
+      return NetworkImage("https://localhost:44324/Content/Avarta/$_currentAvatarUrl"); // Đổi localhost thành 10.0.2.2 nếu dùng máy ảo
+    }
+    return null;
+  }
 
   void _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 900));
-    setState(() => _isSaving = false);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('✅ Cập nhật thông tin thành công!'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+    try {
+      var res = await http.post(
+        Uri.parse('https://localhost:44324/MobileApi/CapNhatHoSoMobile'), // Đổi localhost thành 10.0.2.2 nếu dùng máy ảo
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "MaKH": _maKH,
+          "TenKH": _nameController.text.trim(),
+          "DienThoai": _phoneController.text.trim(),
+          "Email": _emailController.text.trim(),
+          "AvartaBase64": _base64Image // Gửi Base64 lên C#
+        }),
       );
-      Navigator.pop(context);
+
+      if (res.statusCode == 200) {
+        var jsonRes = json.decode(res.body);
+        if (jsonRes['success'] == true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('✅ Cập nhật thông tin thành công!'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+            Navigator.pop(context);
+          }
+        } else {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(jsonRes['message'] ?? 'Lỗi'), backgroundColor: Colors.red));
+        }
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi kết nối: $e"), backgroundColor: Colors.red));
     }
+
+    setState(() => _isSaving = false);
   }
 
   @override
@@ -136,24 +190,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Avatar section ──
+              // ── Avatar section ──
               Center(
                 child: Column(
                   children: [
-                    UserAvatarWidget(
-                      initials: mockUser.avatarInitials,
-                      size: 90,
-                      showEditIcon: true,
-                      onEditTap: () {},
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 45,
+                            backgroundColor: kPrimary.withOpacity(0.2),
+                            backgroundImage: _getAvatarProvider(),
+                            // Nếu không có ảnh File và không có ảnh Server -> Hiện chữ
+                            child: (_imageFile == null && (_currentAvatarUrl.isEmpty || _currentAvatarUrl == "default_user.jpg"))
+                                ? Text(
+                                    avatarInitials,
+                                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: kPrimary),
+                                  )
+                                : null,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle),
+                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Nhấn vào icon máy ảnh để thay đổi',
+                      'Nhấn vào ảnh để thay đổi',
                       style: TextStyle(color: Colors.grey[400], fontSize: 12),
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 28),
 
               // ── Form card ──

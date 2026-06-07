@@ -29,9 +29,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _customerName = "Đang tải...";
   String _customerPhone = "Đang tải...";
   String _memberTier = "Đồng";
+  String _avatarUrl = "";
   int _loyaltyPoints = 0;
   int _totalOrders = 0;
   int _voucherCount = 0;
+  List<dynamic> _apiVouchers = [];
 
   @override
   void initState() {
@@ -59,16 +61,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _customerName = data['TenKH'] ?? "Chưa cập nhật";
               _customerPhone = data['DienThoai'] ?? "Chưa cập nhật";
               
-              // Lấy các trường điểm/vouchers, nếu BE chưa có tạm set = 0
               _memberTier = data['HangThanhVien'] ?? "Đồng";
-              _loyaltyPoints = data['DiemTichLuy'] ?? 0;
-              _totalOrders = data['TongDonHang'] ?? 0;
-              _voucherCount = data['SoVoucher'] ?? 0;
+              _avatarUrl = data['Avarta'] ?? "default_user.jpg";
             });
           }
         }
       } catch (e) {
         print("Lỗi API Profile: $e");
+      }
+
+      // --- TẢI ĐIỂM HIỆN TẠI (CHÍNH XÁC NHẤT TỪ BACKEND) ---
+      try {
+        var resDiem = await http.get(Uri.parse('https://localhost:44324/MobileApi/GetDiemHienTai?maKH=$_maKH'));
+        if (resDiem.statusCode == 200) {
+          var jsonDiem = json.decode(resDiem.body);
+          if (jsonDiem['success'] == true) {
+            setState(() => _loyaltyPoints = jsonDiem['diem'] ?? 0);
+          }
+        }
+      } catch (e) {
+        print("Lỗi API Điểm: $e");
+      }
+
+      // --- TẢI SỐ LƯỢNG VOUCHER ĐANG CÓ TRONG VÍ ---
+      try {
+        var resVouchers = await http.get(Uri.parse('https://localhost:44324/MobileApi/GetVoucherCuaToi?maKH=$_maKH'));
+        if (resVouchers.statusCode == 200) {
+          var jsonVouchers = json.decode(resVouchers.body);
+          if (jsonVouchers['success'] == true && jsonVouchers['data'] != null) {
+            setState(() {
+              _apiVouchers = jsonVouchers['data'];
+              _voucherCount = _apiVouchers.length;
+            });
+          }
+        }
+      } catch (e) {
+        print("Lỗi API Vouchers: $e");
       }
 
       // --- TẢI LỊCH SỬ ĐƠN HÀNG ĐỂ LỌC VÀ ĐẾM ĐƠN ĐANG XỬ LÝ (1, 2, 3) ---
@@ -152,15 +180,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               phone: _customerPhone,
               memberTier: _memberTier,
               loyaltyPoints: _loyaltyPoints,
+              avatarUrl: _avatarUrl,
+              onRefresh: _fetchProfileData,
             ),
 
             // ── Stats Cards ──
-            _StatsRow(totalOrders: _totalOrders, voucherCount: _voucherCount),
+            _StatsRow(
+              totalOrders: _totalOrders, 
+              voucherCount: _voucherCount,
+              onRefresh: _fetchProfileData,
+            ),
 
             const SizedBox(height: 12),
 
             // ── Voucher Wallet ──
-            _VoucherWalletSection(),
+            _VoucherWalletSection(onRefresh: _fetchProfileData, apiVouchers: _apiVouchers),
 
             const SizedBox(height: 24),
 
@@ -300,12 +334,16 @@ class _ProfileHeaderCard extends StatelessWidget {
   final String phone;
   final String memberTier;
   final int loyaltyPoints;
+  final String avatarUrl;
+  final VoidCallback onRefresh;
 
   const _ProfileHeaderCard({
     required this.name,
     required this.phone,
     required this.memberTier,
     required this.loyaltyPoints,
+    required this.avatarUrl,
+    required this.onRefresh,
   });
 
   String get avatarInitials {
@@ -374,18 +412,41 @@ class _ProfileHeaderCard extends StatelessWidget {
                 Row(
                   children: [
                     // Avatar
-                    UserAvatarWidget(
-                      initials: avatarInitials,
-                      size: 72,
-                      showEditIcon: true,
-                      onEditTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const EditProfileScreen(),
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 36,
+                          backgroundColor: Colors.white.withOpacity(0.2),
+                          backgroundImage: (avatarUrl.isNotEmpty && avatarUrl != "default_user.jpg")
+                              ? NetworkImage("https://localhost:44324/Content/Avarta/$avatarUrl")
+                              : null,
+                          child: (avatarUrl.isEmpty || avatarUrl == "default_user.jpg")
+                              ? Text(
+                                  avatarInitials,
+                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                                )
+                              : null,
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const EditProfileScreen(),
+                              ),
+                            ).then((_) => onRefresh());
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: kPrimary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 14),
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
                     const SizedBox(width: 16),
                     // Info
@@ -423,7 +484,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (_) => const EditProfileScreen(),
                           ),
-                        );
+                    ).then((_) => onRefresh());
                       },
                       child: Container(
                         padding: const EdgeInsets.all(8),
@@ -491,7 +552,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (_) => const VoucherExchangeScreen(),
                             ),
-                          );
+                      ).then((_) => onRefresh());
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -530,9 +591,12 @@ class _ProfileHeaderCard extends StatelessWidget {
 class _StatsRow extends StatelessWidget {
   final int totalOrders;
   final int voucherCount;
+  final VoidCallback onRefresh;
+
   const _StatsRow({
     required this.totalOrders,
     required this.voucherCount,
+    required this.onRefresh,
   });
 
   @override
@@ -571,7 +635,7 @@ class _StatsRow extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (_) => const VoucherExchangeScreen(),
                   ),
-                );
+            ).then((_) => onRefresh());
               },
               actionText: 'Đổi điểm',
             ),
@@ -677,6 +741,10 @@ class _StatCard extends StatelessWidget {
 // Voucher Wallet Section
 // ─────────────────────────────────────────
 class _VoucherWalletSection extends StatelessWidget {
+  final VoidCallback onRefresh;
+  final List<dynamic> apiVouchers;
+  const _VoucherWalletSection({required this.onRefresh, required this.apiVouchers});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -723,10 +791,10 @@ class _VoucherWalletSection extends StatelessWidget {
             ),
           ),
           Divider(height: 1, color: Colors.grey[300]),
-          if (mockVouchers.isEmpty)
-            _EmptyVoucherState()
+          if (apiVouchers.isEmpty)
+            _EmptyVoucherState(onRefresh: onRefresh)
           else
-            ...mockVouchers.map((v) => _VoucherTile(voucher: v)),
+            ...apiVouchers.map((v) => _VoucherTile(voucher: v)),
         ],
       ),
     );
@@ -734,6 +802,9 @@ class _VoucherWalletSection extends StatelessWidget {
 }
 
 class _EmptyVoucherState extends StatelessWidget {
+  final VoidCallback onRefresh;
+  const _EmptyVoucherState({required this.onRefresh});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -765,7 +836,7 @@ class _EmptyVoucherState extends StatelessWidget {
                Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const VoucherExchangeScreen()),
-              );
+          ).then((_) => onRefresh());
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -790,12 +861,16 @@ class _EmptyVoucherState extends StatelessWidget {
 }
 
 class _VoucherTile extends StatelessWidget {
-  final VoucherModel voucher;
+  final dynamic voucher;
   const _VoucherTile({required this.voucher});
 
   @override
   Widget build(BuildContext context) {
-    final isUsed = voucher.isUsed;
+    final bool conHan = voucher['ConHan'] ?? false;
+    final bool isUsed = !conHan;
+    final String title = voucher['TenVoucher'] ?? 'Voucher';
+    final String code = voucher['MaCode'] ?? '';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -821,7 +896,7 @@ class _VoucherTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  voucher.title,
+                  title,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -833,7 +908,7 @@ class _VoucherTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Mã: ${voucher.code}',
+                  'Mã: $code',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -851,7 +926,7 @@ class _VoucherTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              isUsed ? 'Đã dùng' : 'Sẵn sàng',
+              isUsed ? 'Hết hạn' : 'Sẵn sàng',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
