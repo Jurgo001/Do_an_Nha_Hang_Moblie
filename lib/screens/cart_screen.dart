@@ -4,6 +4,7 @@ import '../models/cart_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'address_management_screen.dart';
 
 
 class CartScreen extends StatefulWidget {
@@ -62,12 +63,42 @@ class _CartScreenState extends State<CartScreen> {
             setState(() {
               _customerName = data['TenKH'] ?? "Chưa có tên";
               _customerPhone = data['DienThoai'] ?? "Chưa có SĐT";
-              _deliveryAddress = data['DiaChi'] ?? "Chưa cập nhật địa chỉ";
             });
           }
         }
       } catch (e) {
         print("Lỗi API Khách hàng: $e");
+      }
+
+      // --- LẤY ĐỊA CHỈ GIAO HÀNG MẶC ĐỊNH TỪ API MỚI ---
+      try {
+        var resAddr = await http.get(Uri.parse('https://localhost:44324/MobileApi/GetDanhSachDiaChi?maKH=$_maKH'));
+        if (resAddr.statusCode == 200) {
+          var jsonAddr = json.decode(resAddr.body);
+          List<dynamic> addrs = [];
+          if (jsonAddr['success'] == true && jsonAddr['data'] != null) {
+            addrs = jsonAddr['data'];
+          } else if (jsonAddr is List) {
+            addrs = jsonAddr;
+          }
+
+          if (addrs.isNotEmpty) {
+            var def = addrs.firstWhere((a) => a['LaMacDinh'] == true, orElse: () => addrs.first);
+            setState(() {
+              _deliveryAddress = def['DiaChiChiTiet'] ?? def['DiaChi'] ?? 'Chưa cập nhật địa chỉ';
+              if (def['TenNguoiNhan'] != null && def['TenNguoiNhan'].toString().isNotEmpty) {
+                _customerName = def['TenNguoiNhan'];
+              }
+              if (def['SoDienThoai'] != null && def['SoDienThoai'].toString().isNotEmpty) {
+                _customerPhone = def['SoDienThoai'];
+              }
+            });
+          } else {
+            setState(() => _deliveryAddress = 'Vui lòng thêm địa chỉ giao hàng');
+          }
+        }
+      } catch (e) {
+        print("Lỗi API Địa chỉ: $e");
       }
 
 // ========================================================
@@ -354,63 +385,74 @@ class _CartScreenState extends State<CartScreen> {
 
   // --- GIAO DIỆN ĐỊA CHỈ GIAO HÀNG (Giống Shopee) ---
   Widget _buildDeliveryInfo() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              shape: BoxShape.circle,
+    return InkWell(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AddressManagementScreen()),
+        );
+        // Tải lại địa chỉ phòng khi user mới thêm địa chỉ hoặc thay đổi mặc định
+        if (_maKH != 0) _loadUserDataAndFetchAPI();
+      },
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
-            child: const Icon(Icons.location_on, color: Colors.red),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      _customerName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.location_on, color: Colors.red),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        _customerName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      _customerPhone,
-                      style: const TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  _deliveryAddress,
-                  style: const TextStyle(fontSize: 14, height: 1.4),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                      const SizedBox(width: 10),
+                      Text(
+                        _customerPhone,
+                        style: const TextStyle(color: Colors.grey, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    _deliveryAddress,
+                    style: const TextStyle(fontSize: 14, height: 1.4),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-        ],
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }

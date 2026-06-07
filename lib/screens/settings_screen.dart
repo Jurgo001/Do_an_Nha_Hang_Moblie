@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../constants.dart';
 import '../widgets/common_widgets.dart';
 import 'login_screen.dart';
 
@@ -18,10 +18,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: kLight,
       appBar: AppBar(
         title: const Text('Cài đặt'),
         centerTitle: true,
+        backgroundColor: kDark,
+        foregroundColor: Colors.white,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios_rounded, size: 18),
@@ -35,7 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               MenuListItem(
                 icon: Icons.person_outline_rounded,
-                iconColor: AppColors.primary,
+                iconColor: kPrimary,
                 title: 'Cập nhật thông tin cá nhân',
                 subtitle: 'Tên, số điện thoại, email',
                 onTap: () => _showComingSoon(context),
@@ -64,13 +66,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               MenuListItem(
                 icon: Icons.notifications_outlined,
-                iconColor: AppColors.accent,
+                iconColor: Colors.orange,
                 title: 'Cài đặt thông báo',
                 subtitle: 'Nhận thông báo đơn hàng, ưu đãi',
                 trailing: Switch.adaptive(
                   value: _notificationsEnabled,
                   onChanged: (v) => setState(() => _notificationsEnabled = v),
-                  activeColor: AppColors.primary,
+                  activeColor: kPrimary,
                 ),
                 onTap: null,
               ),
@@ -82,7 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: Switch.adaptive(
                   value: _darkModeEnabled,
                   onChanged: (v) => setState(() => _darkModeEnabled = v),
-                  activeColor: AppColors.primary,
+                  activeColor: kPrimary,
                 ),
                 onTap: null,
               ),
@@ -96,15 +98,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Text(
                       _selectedLanguage,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: Colors.grey[600],
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
-                      color: AppColors.textHint,
+                      color: Colors.grey[400],
                       size: 20,
                     ),
                   ],
@@ -121,28 +123,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               MenuListItem(
                 icon: Icons.help_outline_rounded,
-                iconColor: AppColors.success,
+                iconColor: Colors.green,
                 title: 'Trung tâm trợ giúp',
                 subtitle: 'FAQ, hướng dẫn sử dụng',
                 onTap: () => _showComingSoon(context),
               ),
               MenuListItem(
                 icon: Icons.chat_outlined,
-                iconColor: AppColors.primary,
+                iconColor: kPrimary,
                 title: 'Liên hệ hỗ trợ',
                 subtitle: 'Chat, email, hotline',
                 onTap: () => _showComingSoon(context),
               ),
               MenuListItem(
                 icon: Icons.star_outline_rounded,
-                iconColor: AppColors.accent,
+                iconColor: Colors.orange,
                 title: 'Đánh giá ứng dụng',
                 subtitle: 'Chia sẻ trải nghiệm của bạn',
                 onTap: () => _showComingSoon(context),
               ),
               MenuListItem(
                 icon: Icons.info_outline_rounded,
-                iconColor: AppColors.textSecondary,
+                iconColor: Colors.grey[600]!,
                 title: 'Về chúng tôi',
                 subtitle: 'Phiên bản 1.0.0',
                 onTap: () {},
@@ -161,23 +163,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEB),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                  border: Border.all(color: kPrimary.withOpacity(0.5)),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.logout_rounded,
-                      color: AppColors.primary,
+                      color: kPrimary,
                       size: 20,
                     ),
                     SizedBox(width: 8),
                     Text(
                       'Đăng xuất',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: kPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -198,7 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('🚀 Tính năng đang được phát triển'),
-        backgroundColor: AppColors.textPrimary,
+        backgroundColor: kDark,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 2),
@@ -223,7 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: Colors.grey[300],
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -240,8 +242,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? Icons.check_circle_rounded
                         : Icons.circle_outlined,
                     color: lang == _selectedLanguage
-                        ? AppColors.primary
-                        : AppColors.border,
+                        ? kPrimary
+                        : Colors.grey[300],
                   ),
                   title: Text(
                     lang,
@@ -268,23 +270,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Đăng xuất',
-          style: TextStyle(fontWeight: FontWeight.w800),
+          style: TextStyle(fontWeight: FontWeight.w800, color: kDark),
         ),
-        content: const Text(
+        content: Text(
           'Bạn có chắc muốn đăng xuất không?',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: Colors.grey[700]),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               'Hủy',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: Colors.grey[600]),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: kPrimary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -297,7 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 (route) => false,
               );
             },
-            child: const Text('Đăng xuất'),
+            child: const Text('Đăng xuất', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -315,7 +317,7 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

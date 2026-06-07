@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../constants.dart';
 import '../models/mock_data.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class VoucherExchangeScreen extends StatefulWidget {
   const VoucherExchangeScreen({super.key});
@@ -34,7 +36,7 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
           content: Text(
             'Bạn không đủ điểm! Cần thêm ${points - _userPoints} điểm nữa.',
           ),
-          backgroundColor: AppColors.primaryDark,
+          backgroundColor: Colors.red[800],
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -54,8 +56,8 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
         ),
         content: RichText(
           text: TextSpan(
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: Colors.grey[600],
               fontSize: 14,
               height: 1.5,
             ),
@@ -65,7 +67,7 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
                 text: '$points điểm',
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+                  color: kPrimary,
                 ),
               ),
               const TextSpan(text: ' để nhận '),
@@ -80,14 +82,14 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               'Hủy',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: Colors.grey[600]),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: kPrimary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -99,7 +101,7 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('🎉 Đổi thành công! Bạn còn $_userPoints điểm'),
-                  backgroundColor: AppColors.success,
+                  backgroundColor: Colors.green,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -117,19 +119,21 @@ class _VoucherExchangeScreenState extends State<VoucherExchangeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: kLight,
       appBar: AppBar(
         title: const Text('Thư viện quà tặng'),
         centerTitle: true,
+        backgroundColor: kDark,
+        foregroundColor: Colors.white,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios_rounded, size: 18),
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
+          labelColor: kPrimary,
+          unselectedLabelColor: Colors.white60,
+          indicatorColor: kPrimary,
           indicatorWeight: 2.5,
           labelStyle: const TextStyle(
             fontWeight: FontWeight.w700,
@@ -184,7 +188,7 @@ class _GiftLibraryTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: Colors.orange,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(
@@ -218,11 +222,11 @@ class _GiftLibraryTab extends StatelessWidget {
           const SizedBox(height: 20),
 
           // Description
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
               'Đổi điểm tích lũy lấy ưu đãi độc quyền',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              style: TextStyle(color: Colors.grey[600], fontSize: 13),
             ),
           ),
 
@@ -274,10 +278,10 @@ class _GiftCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: canAfford ? color.withOpacity(0.3) : AppColors.border,
+            color: canAfford ? color.withOpacity(0.3) : Colors.grey[300]!,
           ),
           boxShadow: [
             BoxShadow(
@@ -313,16 +317,16 @@ class _GiftCard extends StatelessWidget {
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: canAfford
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                        ? kDark
+                        : Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     gift['desc'] as String,
-                    style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textHint,
+                    color: Color.fromARGB(255, 189, 189, 189),
                     ),
                   ),
                   const Spacer(),
@@ -334,7 +338,7 @@ class _GiftCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: canAfford
                           ? color.withOpacity(0.12)
-                          : AppColors.surfaceVariant,
+                        : Colors.grey[200],
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -342,8 +346,7 @@ class _GiftCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: canAfford ? color : AppColors.textHint,
-                      ),
+                      color: canAfford ? color : const Color.fromARGB(255, 189, 189, 189)       ),
                     ),
                   ),
                 ],
@@ -359,14 +362,14 @@ class _GiftCard extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
+                  color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
+                child: Text(
                     'Thiếu điểm',
                     style: TextStyle(
                       fontSize: 9,
-                      color: AppColors.textHint,
+                    color: const Color.fromARGB(255, 189, 189, 189),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -382,12 +385,45 @@ class _GiftCard extends StatelessWidget {
 // ─────────────────────────────────────────
 // My Vouchers Tab
 // ─────────────────────────────────────────
-class _MyVouchersTab extends StatelessWidget {
+class _MyVouchersTab extends StatefulWidget {
   const _MyVouchersTab();
 
   @override
+  State<_MyVouchersTab> createState() => _MyVouchersTabState();
+}
+
+class _MyVouchersTabState extends State<_MyVouchersTab> {
+  bool _isLoading = true;
+  List<dynamic> _apiVouchers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMyVouchers();
+  }
+
+  Future<void> _fetchMyVouchers() async {
+    try {
+      var res = await http.get(Uri.parse('https://localhost:44324/MobileApi/GetDanhSachVoucher'));
+      if (res.statusCode == 200) {
+        var jsonResponse = json.decode(res.body);
+        if (jsonResponse is List) {
+          setState(() => _apiVouchers = jsonResponse);
+        }
+      }
+    } catch (e) {
+      print("Lỗi API My Vouchers: $e");
+    }
+    setState(() => _isLoading = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (mockVouchers.isEmpty) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_apiVouchers.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -395,13 +431,13 @@ class _MyVouchersTab extends StatelessWidget {
             Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: AppColors.textHint,
+              color: Color.fromARGB(255, 189, 189, 189),
             ),
             SizedBox(height: 12),
             Text(
               'Bạn chưa có voucher nào',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: Color.fromARGB(255, 117, 117, 117),
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
@@ -409,7 +445,7 @@ class _MyVouchersTab extends StatelessWidget {
             SizedBox(height: 4),
             Text(
               'Hãy đổi điểm để nhận ưu đãi!',
-              style: TextStyle(color: AppColors.textHint, fontSize: 13),
+              style: TextStyle(color: Color.fromARGB(255, 189, 189, 189), fontSize: 13),
             ),
           ],
         ),
@@ -418,9 +454,9 @@ class _MyVouchersTab extends StatelessWidget {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: mockVouchers.length,
+      itemCount: _apiVouchers.length,
       itemBuilder: (context, index) {
-        final v = mockVouchers[index];
+        final v = _apiVouchers[index];
         return _VoucherCard(voucher: v);
       },
     );
@@ -428,21 +464,25 @@ class _MyVouchersTab extends StatelessWidget {
 }
 
 class _VoucherCard extends StatelessWidget {
-  final VoucherModel voucher;
+  final dynamic voucher;
   const _VoucherCard({required this.voucher});
 
   @override
   Widget build(BuildContext context) {
-    final isUsed = voucher.isUsed;
-    final accentColor = isUsed ? AppColors.textSecondary : AppColors.success;
+    final String code = voucher['TenVoucher'] ?? 'VOUCHER';
+    final double value = (voucher['GiaTri'] ?? 0).toDouble();
+    final String title = 'Giảm ${value.toInt()}đ';
+    final bool isUsed = false; // Backend chưa có trạng thái nên mặc định false
+
+    final accentColor = isUsed ? Colors.grey[600]! : Colors.green;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isUsed ? AppColors.border : accentColor.withOpacity(0.3),
+          color: isUsed ? Colors.grey[300]! : accentColor.withOpacity(0.3),
         ),
         boxShadow: [
           BoxShadow(
@@ -459,7 +499,7 @@ class _VoucherCard extends StatelessWidget {
             width: 6,
             height: 80,
             decoration: BoxDecoration(
-              color: isUsed ? AppColors.border : accentColor,
+              color: isUsed ? Colors.grey[300] : accentColor,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 bottomLeft: Radius.circular(16),
@@ -472,7 +512,7 @@ class _VoucherCard extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: isUsed
-                  ? AppColors.surfaceVariant
+                  ? Colors.grey[200]
                   : accentColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -485,22 +525,22 @@ class _VoucherCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  voucher.title,
+                  title,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: isUsed
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
+                      ? Colors.grey[600]
+                      : kDark,
                     decoration: isUsed ? TextDecoration.lineThrough : null,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Mã: ${voucher.code}',
-                  style: const TextStyle(
+                  'Mã: $code',
+                style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                  color: Colors.grey[600],
                     fontFamily: 'monospace',
                     fontWeight: FontWeight.w600,
                   ),
@@ -515,7 +555,7 @@ class _VoucherCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: isUsed
-                    ? AppColors.surfaceVariant
+                  ? Colors.grey[200]
                     : accentColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(20),
               ),

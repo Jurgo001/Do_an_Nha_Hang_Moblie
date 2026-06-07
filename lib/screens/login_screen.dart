@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../constants.dart';
 import '../widgets/common_widgets.dart';
 import 'register_screen.dart';
-import 'profile_screen.dart';
+import '../TrangChu/navigation/main_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -93,10 +93,11 @@ class _LoginScreenState extends State<LoginScreen>
                 backgroundColor: Colors.green,
               ),
             );
-            // Chuyển sang màn hình Profile (Hoặc Trang chủ)
-            Navigator.pushReplacement(
+            // Chuyển về màn hình MainScreen để có thanh điều hướng
+            Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              MaterialPageRoute(builder: (_) => const MainScreen()),
+              (route) => false,
             );
           }
         } 
@@ -134,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
@@ -157,15 +158,15 @@ class _LoginScreenState extends State<LoginScreen>
                             width: 72,
                             height: 72,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [AppColors.primary, Color(0xFFFF9F43)],
+                              gradient: LinearGradient(
+                                colors: [kPrimary, kPrimary.withOpacity(0.8)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.primary.withOpacity(0.3),
+                                  color: kPrimary.withOpacity(0.3),
                                   blurRadius: 20,
                                   offset: const Offset(0, 8),
                                 ),
@@ -183,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen>
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
+                              color: kPrimary,
                               letterSpacing: -0.3,
                             ),
                           ),
@@ -199,7 +200,7 @@ class _LoginScreenState extends State<LoginScreen>
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        color: kDark,
                         height: 1.1,
                       ),
                     ),
@@ -208,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen>
                       'Đăng nhập để tiếp tục thưởng thức món ngon.',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textSecondary,
+                        color: Color(0xFF757575),
                         height: 1.4,
                       ),
                     ),
@@ -249,8 +250,8 @@ class _LoginScreenState extends State<LoginScreen>
                               : Icons.visibility_outlined,
                           size: 20,
                           color: _obscurePassword
-                              ? AppColors.textHint
-                              : AppColors.primary,
+                              ? Colors.grey[400]
+                              : kPrimary,
                         ),
                       ),
                       validator: (v) {
@@ -276,12 +277,12 @@ class _LoginScreenState extends State<LoginScreen>
                                 height: 20,
                                 decoration: BoxDecoration(
                                   color: _rememberMe
-                                      ? AppColors.primary
+                                      ? kPrimary
                                       : Colors.transparent,
                                   border: Border.all(
                                     color: _rememberMe
-                                        ? AppColors.primary
-                                        : AppColors.border,
+                                        ? kPrimary
+                                        : Colors.grey[300]!,
                                     width: 1.5,
                                   ),
                                   borderRadius: BorderRadius.circular(6),
@@ -295,11 +296,11 @@ class _LoginScreenState extends State<LoginScreen>
                                     : null,
                               ),
                               const SizedBox(width: 8),
-                              const Text(
+                              Text(
                                 'Ghi nhớ tôi',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: AppColors.textSecondary,
+                                  color: Colors.grey[600],
                                 ),
                               ),
                             ],
@@ -313,7 +314,7 @@ class _LoginScreenState extends State<LoginScreen>
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
+                              color: kPrimary,
                             ),
                           ),
                         ),
@@ -335,18 +336,18 @@ class _LoginScreenState extends State<LoginScreen>
                     // ── Divider ──
                     Row(
                       children: [
-                        const Expanded(child: Divider(color: AppColors.border)),
+                        Expanded(child: Divider(color: Colors.grey[300])),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             'Hoặc tiếp tục với',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textHint,
+                              color: Colors.grey[400],
                             ),
                           ),
                         ),
-                        const Expanded(child: Divider(color: AppColors.border)),
+                        Expanded(child: Divider(color: Colors.grey[300])),
                       ],
                     ),
 
@@ -370,7 +371,7 @@ class _LoginScreenState extends State<LoginScreen>
                         const SizedBox(width: 16),
                         _SocialButton(
                           icon: Icons.phone_iphone_rounded,
-                          color: AppColors.textPrimary,
+                          color: kDark,
                           onTap: () {},
                         ),
                       ],
@@ -383,10 +384,10 @@ class _LoginScreenState extends State<LoginScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
+                          Text(
                             'Chưa có tài khoản? ',
                             style: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: Colors.grey[600],
                               fontSize: 14,
                             ),
                           ),
@@ -402,7 +403,7 @@ class _LoginScreenState extends State<LoginScreen>
                             child: const Text(
                               'Đăng ký ngay',
                               style: TextStyle(
-                                color: AppColors.primary,
+                                color: kPrimary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -444,9 +445,9 @@ class _SocialButton extends StatelessWidget {
         width: 52,
         height: 52,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Colors.grey[300]!),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'api_menu_screen.dart';
 import 'cart_screen.dart';
 import 'profile_screen.dart';
-import '../theme/app_theme.dart';
+import '../constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'login_screen.dart';
+import 'register_screen.dart';
 
 class MainNavScreen extends StatefulWidget {
   const MainNavScreen({super.key});
@@ -39,8 +42,19 @@ class _MainNavScreenState extends State<MainNavScreen> {
           backgroundColor: Colors.white,
           elevation: 0,
           currentIndex: _selectedIndex,
-          onTap: (index) => setState(() => _selectedIndex = index),
-          selectedItemColor: AppColors.primary,
+          onTap: (index) async {
+            if (index == 2) { // 2 là vị trí của tab Tài khoản
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              int? savedMaKH = prefs.getInt('maKH_logged_in');
+              
+              if (savedMaKH == null || savedMaKH == 0) {
+                _showLoginRequiredDialog(context);
+                return; // Chặn không cho đổi tab
+              }
+            }
+            setState(() => _selectedIndex = index);
+          },
+          selectedItemColor: kPrimary,
           unselectedItemColor: Colors.grey.shade400,
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
@@ -75,6 +89,52 @@ class _MainNavScreenState extends State<MainNavScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Hàm hiển thị Dialog yêu cầu đăng nhập
+  void _showLoginRequiredDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Yêu cầu đăng nhập',
+          style: TextStyle(fontWeight: FontWeight.w800, color: kDark),
+        ),
+        content: Text(
+          'Vui lòng đăng nhập hoặc đăng ký để sử dụng tính năng này.',
+          style: TextStyle(color: Colors.grey[700], height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+              );
+            },
+            child: const Text('Đăng ký', style: TextStyle(color: kPrimary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+            child: const Text('Đăng nhập', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

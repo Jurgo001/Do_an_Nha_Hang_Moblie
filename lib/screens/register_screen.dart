@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../constants.dart';
 import '../widgets/common_widgets.dart';
 import 'login_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -53,7 +55,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Vui lòng đồng ý với điều khoản dịch vụ'),
-          backgroundColor: AppColors.primaryDark,
+          backgroundColor: Colors.red[800],
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -64,31 +66,65 @@ class _RegisterScreenState extends State<RegisterScreen>
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    setState(() => _isLoading = false);
+    
+    try {
+      // Gọi API Đăng ký lên Backend (Bạn nhớ kiểm tra lại tên API có phải là DangKy không nhé)
+      var response = await http.post(
+        Uri.parse('https://localhost:44324/MobileApi/DangKy'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "TenKH": _nameController.text.trim(),
+          "DienThoai": _phoneController.text.trim(),
+          "Email": _emailController.text.trim(),
+          "Password": _passwordController.text
+        }),
+      );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('🎉 Đăng ký thành công! Hãy đăng nhập.'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200) {
+        var jsonResponse = json.decode(response.body);
+        
+        if (jsonResponse['success'] == true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('🎉 Đăng ký thành công! Hãy đăng nhập.'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
+          }
+        } else {
+          // Trường hợp email hoặc SĐT đã tồn tại
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(jsonResponse['message'] ?? 'Đăng ký thất bại!'),
+                backgroundColor: Colors.red[800],
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      print("Lỗi API Đăng ký: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
@@ -107,13 +143,13 @@ class _RegisterScreenState extends State<RegisterScreen>
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
+                          color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
                           Icons.arrow_back_ios_rounded,
                           size: 16,
-                          color: AppColors.textPrimary,
+                          color: kDark,
                         ),
                       ),
                     ),
@@ -124,14 +160,14 @@ class _RegisterScreenState extends State<RegisterScreen>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
+                        color: kPrimary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
                         'Đã có tài khoản?',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.primary,
+                          color: kPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -143,7 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                         'Đăng nhập',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.primary,
+                          color: kPrimary,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -169,7 +205,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                            color: kDark,
                             height: 1.1,
                           ),
                         ),
@@ -178,7 +214,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                           'Đăng ký để nhận ưu đãi và tích điểm mỗi ngày.',
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppColors.textSecondary,
+                            color: Color(0xFF757575),
                           ),
                         ),
 
@@ -249,8 +285,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                                   : Icons.visibility_outlined,
                               size: 20,
                               color: _obscurePassword
-                                  ? AppColors.textHint
-                                  : AppColors.primary,
+                                  ? Colors.grey[400]
+                                  : kPrimary,
                             ),
                           ),
                           validator: (v) {
@@ -283,8 +319,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                                   : Icons.visibility_outlined,
                               size: 20,
                               color: _obscureConfirm
-                                  ? AppColors.textHint
-                                  : AppColors.primary,
+                                  ? Colors.grey[400]
+                                  : kPrimary,
                             ),
                           ),
                           validator: (v) {
@@ -313,12 +349,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 margin: const EdgeInsets.only(top: 2),
                                 decoration: BoxDecoration(
                                   color: _agreeToTerms
-                                      ? AppColors.primary
+                                      ? kPrimary
                                       : Colors.transparent,
                                   border: Border.all(
                                     color: _agreeToTerms
-                                        ? AppColors.primary
-                                        : AppColors.border,
+                                        ? kPrimary
+                                        : Colors.grey[300]!,
                                     width: 1.5,
                                   ),
                                   borderRadius: BorderRadius.circular(6),
@@ -337,7 +373,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                   text: const TextSpan(
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: AppColors.textSecondary,
+                                      color: Color(0xFF757575),
                                       height: 1.4,
                                     ),
                                     children: [
@@ -345,7 +381,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                       TextSpan(
                                         text: 'Điều khoản dịch vụ',
                                         style: TextStyle(
-                                          color: AppColors.primary,
+                                          color: kPrimary,
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
@@ -353,7 +389,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                       TextSpan(
                                         text: 'Chính sách bảo mật',
                                         style: TextStyle(
-                                          color: AppColors.primary,
+                                          color: kPrimary,
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),

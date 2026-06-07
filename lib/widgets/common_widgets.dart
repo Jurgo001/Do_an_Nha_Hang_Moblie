@@ -342,7 +342,7 @@ class MemberBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tierData = _getTierData(tier);
+    final tierData = getTierData(tier);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -371,7 +371,7 @@ class MemberBadge extends StatelessWidget {
     );
   }
 
-  Map<String, dynamic> _getTierData(String tier) {
+  static Map<String, dynamic> getTierData(String tier) {
     switch (tier) {
       case 'Vàng':
         return {
