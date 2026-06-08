@@ -62,11 +62,10 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
   void _showAddressBottomSheet({Map<String, dynamic>? addressToEdit}) {
     final bool isEditing = addressToEdit != null;
     
-    final TextEditingController nameController = TextEditingController(text: isEditing ? addressToEdit['TenNguoiNhan'] : '');
-    final TextEditingController phoneController = TextEditingController(text: isEditing ? addressToEdit['SoDienThoai'] : '');
-    // API có thể trả về 'DiaChiChiTiet' hoặc 'DiaChi' tùy phiên bản, ta bắt cả 2
-    final TextEditingController addressController = TextEditingController(text: isEditing ? (addressToEdit['DiaChiChiTiet'] ?? addressToEdit['DiaChi']) : '');
-    bool isDefault = isEditing ? (addressToEdit['LaMacDinh'] == true) : false;
+    final TextEditingController nameController = TextEditingController(text: isEditing ? addressToEdit!['TenNguoiNhan'] : '');
+    final TextEditingController phoneController = TextEditingController(text: isEditing ? addressToEdit!['SoDienThoai'] : '');
+    final TextEditingController addressController = TextEditingController(text: isEditing ? (addressToEdit!['DiaChiChiTiet'] ?? addressToEdit!['DiaChi'] ?? '') : '');
+    bool isDefault = isEditing ? (addressToEdit!['LaMacDinh'] == true) : false;
 
     showModalBottomSheet(
       context: context,
@@ -181,7 +180,9 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                           };
 
                           if (isEditing) {
-                            payload["MaDiaChi"] = addressToEdit['MaDiaChi'];
+                            // Thêm dấu ! vì đã check isEditing = true thì addressToEdit chắc chắn không null
+                            // Bắt cả 2 trường hợp chữ Hoa và chữ Thường
+                            payload["MaDiaChi"] = addressToEdit!['MaDiaChi'] ?? addressToEdit!['maDiaChi'];
                           }
 
                           var response = await http.post(
@@ -194,10 +195,18 @@ class _AddressManagementScreenState extends State<AddressManagementScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text(isEditing ? "Cập nhật địa chỉ thành công!" : "Thêm địa chỉ thành công!"), backgroundColor: Colors.green),
                             );
-                            _fetchAddresses(); // Tải lại danh sách
+                            await _fetchAddresses(); // Tải lại danh sách
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Có lỗi xảy ra, vui lòng thử lại sau!"), backgroundColor: Colors.red),
+                            );
                           }
                         } catch (e) {
                           print("Lỗi thêm địa chỉ: $e");
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Lỗi kết nối: $e"), backgroundColor: Colors.red),
+                          );
+                        } finally {
                           setState(() => _isLoading = false);
                         }
                       },

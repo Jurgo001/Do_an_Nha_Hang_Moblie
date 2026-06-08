@@ -333,51 +333,7 @@ class _LoginScreenState extends State<LoginScreen>
                       onTap: _handleLogin,
                     ),
 
-                    const SizedBox(height: 28),
-
-                    // ── Divider ──
-                    Row(
-                      children: [
-                        Expanded(child: Divider(color: Colors.grey[300])),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'Hoặc tiếp tục với',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        ),
-                        Expanded(child: Divider(color: Colors.grey[300])),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // ── Social buttons ──
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _SocialButton(
-                          icon: Icons.facebook_rounded,
-                          color: const Color(0xFF1877F2),
-                          onTap: () {},
-                        ),
-                        const SizedBox(width: 16),
-                        _SocialButton(
-                          icon: Icons.g_mobiledata_rounded,
-                          color: const Color(0xFFEA4335),
-                          onTap: () {},
-                        ),
-                        const SizedBox(width: 16),
-                        _SocialButton(
-                          icon: Icons.phone_iphone_rounded,
-                          color: kDark,
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 28),                
 
                     const SizedBox(height: 32),
 
